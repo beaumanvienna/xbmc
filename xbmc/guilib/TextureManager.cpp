@@ -223,7 +223,11 @@ CGUITextureManager::CGUITextureManager(void)
 
 CGUITextureManager::~CGUITextureManager(void)
 {
+  printf("debug jc: ~CGUITextureManager\n");
+  CLog::Log(LOGWARNING, "debug jc: ~CGUITextureManager");
   Cleanup();
+  printf("debug jc: ~CGUITextureManager terminated\n");
+  CLog::Log(LOGWARNING, "debug jc: ~CGUITextureManager terminated");
 }
 
 /************************************************************************/
@@ -502,12 +506,16 @@ void CGUITextureManager::ReleaseHwTexture(unsigned int texture)
 
 void CGUITextureManager::Cleanup()
 {
+  printf("debug jc: CGUITextureManager::Cleanup\n");
+  CLog::Log(LOGWARNING, "debug jc: CGUITextureManager::Cleanup");
   CSingleLock lock(g_graphicsContext);
 
   ivecTextures i;
   i = m_vecTextures.begin();
   while (i != m_vecTextures.end())
   {
+    printf("debug jc: cleaning up...\n");
+    CLog::Log(LOGWARNING, "cleaning up...");
     CTextureMap* pMap = *i;
     CLog::Log(LOGWARNING, "%s: Having to cleanup texture %s", __FUNCTION__, pMap->GetName().c_str());
     delete pMap;
@@ -516,6 +524,8 @@ void CGUITextureManager::Cleanup()
   for (int i = 0; i < 2; i++)
     m_TexBundle[i].Cleanup();
   FreeUnusedTextures();
+  printf("debug jc: CGUITextureManager::Cleanup terminated\n");
+  CLog::Log(LOGWARNING, "debug jc: CGUITextureManager::Cleanup terminated");
 }
 
 void CGUITextureManager::Dump() const

@@ -18,6 +18,7 @@
  *
  */
 
+#include "signal.h"
 #include "network/Network.h"
 #include "threads/SystemClock.h"
 #include "system.h"
@@ -377,6 +378,25 @@ using namespace XbmcThreads;
 #define USE_RELEASE_LIBS
 
 #define MAX_FFWD_SPEED 5
+
+#ifdef TARGET_LINUX
+#ifdef HAS_SDL_JOYSTICK
+void ReScan(int i)
+{
+  CLog::Log(LOGDEBUG, "rescanning for new game controller");
+
+  // switch off
+  g_Joystick.SetEnabled( false );
+  
+  // switch back on
+  if (CSettings::Get().GetBool("input.enablejoystick") &&
+                    CPeripheralImon::GetCountOfImonsConflictWithDInput() == 0)
+  {
+    g_Joystick.SetEnabled( true );
+  }
+}
+#endif
+#endif
 
 //extern IDirectSoundRenderer* m_pAudioDecoder;
 CApplication::CApplication(void)
@@ -1549,6 +1569,13 @@ bool CApplication::Initialize()
 #ifdef HAS_SDL_JOYSTICK
   g_Joystick.SetEnabled(CSettings::Get().GetBool("input.enablejoystick") &&
                     CPeripheralImon::GetCountOfImonsConflictWithDInput() == 0 );
+  
+#ifdef TARGET_LINUX
+  //register interrupt handler for SIGUSR1 to have XBMC re-initialze the gamepads
+  printf("This xbmc version is patched for RetroRig.\n");
+  signal(SIGUSR1, ReScan);  
+#endif
+
 #endif
 
   return true;
@@ -2061,6 +2088,8 @@ void CApplication::LoadSkin(const SkinPtr& skin)
 
 void CApplication::UnloadSkin(bool forReload /* = false */)
 {
+  printf("debug jc: CApplication::UnloadSkin\n");
+  CLog::Log(LOGWARNING, "debug jc: CApplication::UnloadSkin");
   m_skinReloading = forReload;
 
   CLog::Log(LOGINFO, "Unloading old skin %s...", forReload ? "for reload " : "");
@@ -2081,6 +2110,9 @@ void CApplication::UnloadSkin(bool forReload /* = false */)
   g_colorManager.Clear();
 
   g_infoManager.Clear();
+  
+  printf("debug jc: CApplication::UnloadSkin terminated\n");
+  CLog::Log(LOGWARNING, "debug jc: CApplication::UnloadSkin terminated");
 
 //  The g_SkinInfo boost shared_ptr ought to be reset here
 // but there are too many places it's used without checking for NULL
@@ -3533,6 +3565,7 @@ bool CApplication::Cleanup()
 
 void CApplication::Stop(int exitCode)
 {
+  printf("debug jc: CApplication::Stop()\n");
   try
   {
     CVariant vExitCode(exitCode);
@@ -3619,24 +3652,44 @@ void CApplication::Stop(int exitCode)
     CCrystalHD::RemoveInstance();
 #endif
 
+    
+    
     g_mediaManager.Stop();
+    
+    printf("debug jc: after g_mediaManager.Stop();\n");
+    CLog::Log(LOGNOTICE, "debug jc: after g_mediaManager.Stop();");
 
     // Stop services before unloading Python
     CAddonMgr::Get().StopServices(false);
+    
+    printf("debug jc: after CAddonMgr::Get().StopServices(false);\n");
+    CLog::Log(LOGNOTICE, "debug jc: after CAddonMgr::Get().StopServices(false);");
 
     // stop all remaining scripts; must be done after skin has been unloaded,
     // not before some windows still need it when deinitializing during skin
     // unloading
     CScriptInvocationManager::Get().Uninitialize();
+    
+    printf("debug jc: CScriptInvocationManager::Get().Uninitialize();\n");
+    CLog::Log(LOGNOTICE, "debug jc: CScriptInvocationManager::Get().Uninitialize();");
 
     g_Windowing.DestroyRenderSystem();
+    printf("debug jc: after DestroyRenderSystem\n");
+    CLog::Log(LOGNOTICE, "debug jc: after DestroyRenderSystem");
     g_Windowing.DestroyWindow();
+    printf("debug jc: after DestroyWindow\n");
+    CLog::Log(LOGNOTICE, "debug jc: after DestroyWindow");
     g_Windowing.DestroyWindowSystem();
+    
+    printf("debug jc: after destroyWindowSystem\n");
+    CLog::Log(LOGNOTICE, "debug jc: after destroy");
 
     // shutdown the AudioEngine
     CAEFactory::Shutdown();
+    printf("debug jc: after CAEFactory::Shutdown();\n");
     CAEFactory::UnLoadEngine();
-
+    printf("debug jc: after CAEFactory::UnLoadEngine();\n");
+    
     // unregister ffmpeg lock manager call back
     av_lockmgr_register(NULL);
 
@@ -3649,8 +3702,10 @@ void CApplication::Stop(int exitCode)
 
   // we may not get to finish the run cycle but exit immediately after a call to g_application.Stop()
   // so we may never get to Destroy() in CXBApplicationEx::Run(), we call it here.
+  printf("debug jc: calling Destroy()\n");
   Destroy();
-
+  printf("debug jc: CApplication::Stop() terminated\n");
+  
   //
   Sleep(200);
 }

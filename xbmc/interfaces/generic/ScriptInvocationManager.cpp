@@ -38,11 +38,13 @@ CScriptInvocationManager::CScriptInvocationManager()
 
 CScriptInvocationManager::~CScriptInvocationManager()
 {
+  printf("CScriptInvocationManager::~CScriptInvocationManager()\n");
   Uninitialize();
+  printf("CScriptInvocationManager::~CScriptInvocationManager()terminated\n");
 }
 
 CScriptInvocationManager& CScriptInvocationManager::Get()
-{
+{ 
   static CScriptInvocationManager s_instance;
   return s_instance;
 }
@@ -81,6 +83,7 @@ void CScriptInvocationManager::Process()
 
 void CScriptInvocationManager::Uninitialize()
 {
+  /*
   CSingleLock lock(m_critSection);
 
   // execute Process() once more to handle the remaining scripts
@@ -105,14 +108,15 @@ void CScriptInvocationManager::Uninitialize()
     if (!it->done)
       it->thread->Stop(true);
   }
-  tempList.clear();
-
+  
+  //tempList.clear();
+  //printf("after tempList.clear();\n");
   lock.Enter();
   // uninitialize all invocation handlers and then remove them
   for (LanguageInvocationHandlerMap::iterator it = m_invocationHandlers.begin(); it != m_invocationHandlers.end(); ++it)
     it->second->Uninitialize();
 
-  m_invocationHandlers.clear();
+  m_invocationHandlers.clear();*/
 }
 
 void CScriptInvocationManager::RegisterLanguageInvocationHandler(ILanguageInvocationHandler *invocationHandler, const std::string &extension)
@@ -227,28 +231,60 @@ int CScriptInvocationManager::Execute(const std::string &script, const ADDON::Ad
 
 bool CScriptInvocationManager::Stop(int scriptId, bool wait /* = false */)
 {
+  bool myVar;
+  
+  printf("debug jc: CScriptInvocationManager::Stop (overlay I)\n");
+  CLog::Log(LOGNOTICE, "debug jc: CScriptInvocationManager::Stop (overlay I)");
+  
   if (scriptId < 0)
+  {
+    printf("debug jc: (scriptId < 0) terminating\n");
     return false;
-
+  }
   CSingleLock lock(m_critSection);
   CLanguageInvokerThreadPtr invokerThread = getInvokerThread(scriptId).thread;
   if (invokerThread == NULL)
+  {
+    printf("debug jc: (invokerThread == NULL) terminating\n");
     return false;
-
-  return invokerThread->Stop(wait);
+  }
+  printf("debug jc: before 'invokerThread->Stop(wait);'\n");
+  CLog::Log(LOGNOTICE, "debug jc: before 'invokerThread->Stop(wait);'");
+  myVar = invokerThread->Stop(wait);
+  
+  printf("debug jc: CScriptInvocationManager::Stop (overlay I) terminated\n");
+  CLog::Log(LOGNOTICE, "debug jc: CScriptInvocationManager::Stop (overlay I) terminated");
+  
+  return myVar;
 }
 
 bool CScriptInvocationManager::Stop(const std::string &scriptPath, bool wait /* = false */)
 {
+  bool myVar = true;
+  
+  printf("debug jc: CScriptInvocationManager::Stop (overlay II)\n");
+  CLog::Log(LOGNOTICE, "debug jc: CScriptInvocationManager::Stop (overlay II)");
+  
   if (scriptPath.empty())
+  {
+    printf("debug jc: (scriptPath.empty()) terminating\n");
     return false;
+  }
 
   CSingleLock lock(m_critSection);
   std::map<std::string, int>::const_iterator script = m_scriptPaths.find(scriptPath);
   if (script == m_scriptPaths.end())
+  {
+    printf("debug jc: (script == m_scriptPaths.end()) terminating\n");
     return false;
-
-  return Stop(script->second, wait);
+  }
+  printf("debug jc: skipping overlay I\n");
+  //myVar = Stop(script->second, wait);
+  
+  printf("debug jc: CScriptInvocationManager::Stop (overlay II) terminated\n");
+  CLog::Log(LOGNOTICE, "debug jc: CScriptInvocationManager::Stop (overlay II) terminated");
+  
+  return myVar;
 }
 
 bool CScriptInvocationManager::IsRunning(int scriptId) const

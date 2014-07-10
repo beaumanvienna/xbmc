@@ -35,6 +35,8 @@ XbmcCommons::ILogger* CThread::logger = NULL;
 
 #include "threads/platform/ThreadImpl.cpp"
 
+extern bool shuttingDown;
+
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
@@ -44,6 +46,14 @@ XbmcCommons::ILogger* CThread::logger = NULL;
 CThread::CThread(const char* ThreadName)
 : m_StopEvent(true,true), m_TermEvent(true), m_StartEvent(true)
 {
+  if (ThreadName)
+  {
+    printf("debug jc: CThread::CThread(const char* ThreadName) (Overlay I) for new thread '%s'\n",ThreadName);
+  }
+  else
+  {
+     printf("debug jc: CThread::CThread(const char* ThreadName) (Overlay I) with no name\n");
+  }
   m_bStop = false;
 
   m_bAutoDelete = false;
@@ -55,12 +65,23 @@ CThread::CThread(const char* ThreadName)
   m_pRunnable=NULL;
 
   if (ThreadName)
+  {
     m_ThreadName = ThreadName;
+  }
+  printf("debug jc: CThread::CThread(const char* ThreadName) (Overlay I) terminated\n");
 }
 
 CThread::CThread(IRunnable* pRunnable, const char* ThreadName)
 : m_StopEvent(true,true), m_TermEvent(true), m_StartEvent(true)
 {
+  if (ThreadName)
+  {
+    printf("debug jc: CThread::CThread(const char* ThreadName) (Overlay II) for new thread '%s'\n",ThreadName);
+  }
+  else
+  {
+     printf("debug jc: CThread::CThread(const char* ThreadName) (Overlay II) with no name\n");
+  }
   m_bStop = false;
 
   m_bAutoDelete = false;
@@ -72,18 +93,33 @@ CThread::CThread(IRunnable* pRunnable, const char* ThreadName)
   m_pRunnable=pRunnable;
 
   if (ThreadName)
+  {
     m_ThreadName = ThreadName;
+  }
+  printf("debug jc: CThread::CThread(const char* ThreadName) (Overlay II)\n");
 }
 
 CThread::~CThread()
 {
-  StopThread();
+  printf("debug jc: CThread::~CThread() for '%s'\n",m_ThreadName.c_str());
+  if (!shuttingDown) 
+  {
+    printf("debug jc: CThread::~CThread is executing StopThread() to stop '%s';\n", m_ThreadName.c_str());
+    StopThread();
+  }
+  else
+  {
+    printf("debug jc: skipping StopThread() to prevent deadlock!\n");
+  }
+  printf("debug jc: CThread::~CThread() terminated\n");
 }
 
 void CThread::Create(bool bAutoDelete, unsigned stacksize)
 {
+  printf("debug jc: CThread::Create() for '%s'\n",m_ThreadName.c_str());
   if (m_ThreadId != 0)
   {
+    printf("debug jc: fatal error creating thread- old thread id not null\n");
     LOG(LOGERROR, "%s - fatal error creating thread- old thread id not null", __FUNCTION__);
     exit(1);
   }
@@ -97,6 +133,7 @@ void CThread::Create(bool bAutoDelete, unsigned stacksize)
   m_StartEvent.Reset();
 
   SpawnThread(stacksize);
+  printf("debug jc: CThread::Create() terminated\n");
 }
 
 bool CThread::IsRunning() const

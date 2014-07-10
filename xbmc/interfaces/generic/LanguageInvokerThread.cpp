@@ -20,6 +20,7 @@
 
 #include "LanguageInvokerThread.h"
 #include "ScriptInvocationManager.h"
+#include "utils/log.h"
 
 CLanguageInvokerThread::CLanguageInvokerThread(ILanguageInvoker *invoker, CScriptInvocationManager *invocationManager)
   : ILanguageInvoker(NULL),
@@ -30,8 +31,10 @@ CLanguageInvokerThread::CLanguageInvokerThread(ILanguageInvoker *invoker, CScrip
 
 CLanguageInvokerThread::~CLanguageInvokerThread()
 {
-  Stop(true);
+  printf("debug jc: CLanguageInvokerThread::~CLanguageInvokerThread()\n");
+  //Stop(true);
   delete m_invoker;
+  printf("debug jc: CLanguageInvokerThread::~CLanguageInvokerThread() terminated\n");
 }
 
 InvokerState CLanguageInvokerThread::GetState()
@@ -56,21 +59,38 @@ bool CLanguageInvokerThread::execute(const std::string &script, const std::vecto
 
 bool CLanguageInvokerThread::stop(bool wait)
 {
+  
+  bool myVar;
+  
+  printf("debug jc: CLanguageInvokerThread::stop\n");
+  CLog::Log(LOGNOTICE, "debug jc: CLanguageInvokerThread::stop");
+  
   if (m_invoker == NULL)
+  {
+    printf("debug jc: (m_invoker == NULL) terminating\n");
     return false;
+  }
 
   if (!CThread::IsRunning())
+  {
+    printf("debug jc: (!CThread::IsRunning()) terminating\n");
     return false;
+  }
 
   bool result = true;
   if (m_invoker->GetState() < InvokerStateDone)
   {
+    printf("debug jc: before result = m_invoker->Stop(wait);\n");
     // stop the language-specific invoker
     result = m_invoker->Stop(wait);
     // stop the thread
-    CThread::StopThread(wait);
+    printf("debug jc: before CThread::StopThread(wait);\n");
+    printf("debug jc: skipping CThread::StopThread(wait);\n");
+    //CThread::StopThread(wait);
   }
 
+  printf("debug jc: CLanguageInvokerThread::stop terminating\n");
+  CLog::Log(LOGNOTICE, "debug jc: CLanguageInvokerThread::stop terminating");
   return result;
 }
 

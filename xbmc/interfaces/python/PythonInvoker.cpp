@@ -104,6 +104,7 @@ CPythonInvoker::CPythonInvoker(ILanguageInvocationHandler *invocationHandler)
 
 CPythonInvoker::~CPythonInvoker()
 {
+  printf("debug jc: CPythonInvoker::~CPythonInvoker()\n");
   // nothing to do for the default invoker used for registration with the
   // CScriptInvocationManager
   if (GetId() < 0)
@@ -112,7 +113,7 @@ CPythonInvoker::~CPythonInvoker()
   if (GetState() < InvokerStateDone)
     CLog::Log(LOGDEBUG, "CPythonInvoker(%d): waiting for python thread \"%s\" to stop",
       GetId(), (m_source != NULL ? m_source : "unknown script"));
-  Stop(true);
+  //Stop(true);
   g_pythonParser.PulseGlobalEvent();
 
   delete [] m_source;
@@ -123,6 +124,7 @@ CPythonInvoker::~CPythonInvoker()
     delete [] m_argv;
   }
   g_pythonParser.FinalizeScript();
+  printf("debug jc: CPythonInvoker::~CPythonInvoker() terminated\n");
 }
 
 bool CPythonInvoker::Execute(const std::string &script, const std::vector<std::string> &arguments /* = std::vector<std::string>() */)
@@ -398,6 +400,13 @@ bool CPythonInvoker::execute(const std::string &script, const std::vector<std::s
 
 bool CPythonInvoker::stop(bool abort)
 {
+  printf("debug jc: CPythonInvoker::stop(bool abort) ** skipping eveything: terminating right now\n");
+  CLog::Log(LOGNOTICE, "debug jc: CPythonInvoker::stop(bool abort) ** skipping eveything: terminating right now");
+  
+  return true;
+  
+  
+  
   CSingleLock lock(m_critical);
   m_stop = true;
 
