@@ -432,6 +432,7 @@ namespace XBMCAddon
 
     bool WindowXML::LoadXML(const String &strPath, const String &strLowerPath)
     {
+      printf("RetroRig #45: WindowXML::LoadXML\n");
       XBMC_TRACE;
       // load our window
       XFILE::CFile file;

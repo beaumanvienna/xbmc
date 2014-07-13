@@ -129,6 +129,7 @@ CPythonInvoker::~CPythonInvoker()
 
 bool CPythonInvoker::Execute(const std::string &script, const std::vector<std::string> &arguments /* = std::vector<std::string>() */)
 {
+  printf("RetroRig #45: CPythonInvoker::Execute (overlay I)\n");
   if (script.empty())
     return false;
 
@@ -146,6 +147,7 @@ bool CPythonInvoker::Execute(const std::string &script, const std::vector<std::s
 
 bool CPythonInvoker::execute(const std::string &script, const std::vector<std::string> &arguments)
 {
+  printf("RetroRig #45: CPythonInvoker::Execute (overlay II)\n");
   // copy the code/script into a local string buffer
 #ifdef TARGET_WINDOWS
   CStdString strsrc = script;
@@ -167,17 +169,24 @@ bool CPythonInvoker::execute(const std::string &script, const std::vector<std::s
   }
 
   CLog::Log(LOGDEBUG, "CPythonInvoker(%d, %s): start processing", GetId(), m_source);
+  printf("RetroRig #45: PythonInvoker(%d, %s): start processing\n", GetId(), m_source);
   int m_Py_file_input = Py_file_input;
 
+  printf("hello 1\n");
   // get the global lock
   PyEval_AcquireLock();
+  printf("hello 2\n");
   PyThreadState* state = Py_NewInterpreter();
+  
+  printf("hello 3\n");
   if (state == NULL)
   {
     PyEval_ReleaseLock();
+    printf("RetroRig #45: CPythonInvoker(%d, %s): FAILED to get thread state!\n", GetId(), m_source);
     CLog::Log(LOGERROR, "CPythonInvoker(%d, %s): FAILED to get thread state!", GetId(), m_source);
     return false;
   }
+  
   // swap in my thread state
   PyThreadState_Swap(state);
 
@@ -188,6 +197,7 @@ bool CPythonInvoker::execute(const std::string &script, const std::vector<std::s
   setState(InvokerStateInitialized);
 
   CLog::Log(LOGDEBUG, "CPythonInvoker(%d, %s): the source file to load is %s", GetId(), m_source, m_source);
+  printf("RetroRig #45: CPythonInvoker(%d, %s): the source file to load is %s\n", GetId(), m_source, m_source);
 
   // get path from script file name and add python path's
   // this is used for python so it will search modules from script path first

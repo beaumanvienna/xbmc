@@ -235,6 +235,7 @@ void CThread::Sleep(unsigned int milliseconds)
 
 void CThread::Action()
 {
+  printf("RetroRig #45: CThread::Action() %s\n",m_ThreadName.c_str());
   try
   {
     OnStartup();

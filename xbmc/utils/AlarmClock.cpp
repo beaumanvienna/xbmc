@@ -81,6 +81,7 @@ void CAlarmClock::Start(const CStdString& strName, float n_secs, const CStdStrin
 
 void CAlarmClock::Stop(const CStdString& strName, bool bSilent /* false */)
 {
+  printf("RetroRig #45: CAlarmClock::Stop %s\n", strName.c_str());
   CSingleLock lock(m_events);
 
   CStdString lowerName(strName);

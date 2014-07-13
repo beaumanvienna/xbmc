@@ -141,6 +141,7 @@ void CApplicationMessenger::Cleanup()
 
 void CApplicationMessenger::SendMessage(ThreadMessage& message, bool wait)
 {
+  printf("RetroRig #45: CApplicationMessenger::SendMessage\n");
   message.waitEvent.reset();
   boost::shared_ptr<CEvent> waitEvent;
   if (wait)
@@ -212,7 +213,7 @@ void CApplicationMessenger::ProcessMessages()
 
     boost::shared_ptr<CEvent> waitEvent = pMsg->waitEvent; 
     lock.Leave(); // <- see the large comment in SendMessage ^
-
+    printf("RetroRig #45: CApplicationMessenger::ProcessMessages\n");
     ProcessMessage(pMsg);
     if (waitEvent)
       waitEvent->Set();
@@ -900,6 +901,7 @@ CStdString CApplicationMessenger::GetResponse()
 
 void CApplicationMessenger::ExecBuiltIn(const CStdString &command, bool wait)
 {
+  printf("RetroRig #45: CApplicationMessenger::ExecBuiltIn %s\n", command.c_str());
   ThreadMessage tMsg = {TMSG_EXECUTE_BUILT_IN};
   tMsg.strParam = command;
   SendMessage(tMsg, wait);

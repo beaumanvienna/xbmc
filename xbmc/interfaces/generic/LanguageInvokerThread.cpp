@@ -106,6 +106,7 @@ void CLanguageInvokerThread::OnStartup()
 
 void CLanguageInvokerThread::Process()
 {
+  printf("RetroRig #45: CLanguageInvokerThread::Process() %s \n",m_script.c_str());
   if (m_invoker == NULL)
     return;
 

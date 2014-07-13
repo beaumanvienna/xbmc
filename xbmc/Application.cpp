@@ -4837,6 +4837,7 @@ bool CApplication::IsIdleShutdownInhibited() const
 
 bool CApplication::OnMessage(CGUIMessage& message)
 {
+  printf("RetroRig #45: CApplication::OnMessage %d\n",message.GetMessage());
   switch ( message.GetMessage() )
   {
   case GUI_MSG_NOTIFY_ALL:
@@ -5075,6 +5076,7 @@ bool CApplication::OnMessage(CGUIMessage& message)
 
 bool CApplication::ExecuteXBMCAction(std::string actionStr)
 {
+  printf("RetroRig #45: CApplication::ExecuteXBMCAction %s\n",actionStr.c_str());
   // see if it is a user set string
 
   //We don't know if there is unsecure information in this yet, so we
