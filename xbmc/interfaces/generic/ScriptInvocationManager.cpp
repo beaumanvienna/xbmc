@@ -38,9 +38,13 @@ CScriptInvocationManager::CScriptInvocationManager()
 
 CScriptInvocationManager::~CScriptInvocationManager()
 {
+#ifdef RETRORIG_PL4
   printf("CScriptInvocationManager::~CScriptInvocationManager()\n");
+#endif
   Uninitialize();
+#ifdef RETRORIG_PL4
   printf("CScriptInvocationManager::~CScriptInvocationManager()terminated\n");
+#endif
 }
 
 CScriptInvocationManager& CScriptInvocationManager::Get()
@@ -232,28 +236,39 @@ int CScriptInvocationManager::Execute(const std::string &script, const ADDON::Ad
 bool CScriptInvocationManager::Stop(int scriptId, bool wait /* = false */)
 {
   bool myVar;
-  
+#ifdef RETRORIG_PL4
   printf("debug jc: CScriptInvocationManager::Stop (overlay I)\n");
   CLog::Log(LOGNOTICE, "debug jc: CScriptInvocationManager::Stop (overlay I)");
+#endif
   
   if (scriptId < 0)
   {
+#ifdef RETRORIG_PL4
     printf("debug jc: (scriptId < 0) terminating\n");
+#endif
     return false;
   }
   CSingleLock lock(m_critSection);
   CLanguageInvokerThreadPtr invokerThread = getInvokerThread(scriptId).thread;
   if (invokerThread == NULL)
   {
+#ifdef RETRORIG_PL4
     printf("debug jc: (invokerThread == NULL) terminating\n");
+#endif
     return false;
   }
+
+  #ifdef RETRORIG_PL4
   printf("debug jc: before 'invokerThread->Stop(wait);'\n");
   CLog::Log(LOGNOTICE, "debug jc: before 'invokerThread->Stop(wait);'");
+#endif
+
   myVar = invokerThread->Stop(wait);
-  
+
+  #ifdef RETRORIG_PL4
   printf("debug jc: CScriptInvocationManager::Stop (overlay I) terminated\n");
   CLog::Log(LOGNOTICE, "debug jc: CScriptInvocationManager::Stop (overlay I) terminated");
+#endif
   
   return myVar;
 }
@@ -261,13 +276,17 @@ bool CScriptInvocationManager::Stop(int scriptId, bool wait /* = false */)
 bool CScriptInvocationManager::Stop(const std::string &scriptPath, bool wait /* = false */)
 {
   bool myVar = true;
-  
+
+#ifdef RETRORIG_PL4
   printf("debug jc: CScriptInvocationManager::Stop (overlay II)\n");
   CLog::Log(LOGNOTICE, "debug jc: CScriptInvocationManager::Stop (overlay II)");
+#endif
   
   if (scriptPath.empty())
   {
+#ifdef RETRORIG_PL4
     printf("debug jc: (scriptPath.empty()) terminating\n");
+#endif
     return false;
   }
 
@@ -275,15 +294,19 @@ bool CScriptInvocationManager::Stop(const std::string &scriptPath, bool wait /* 
   std::map<std::string, int>::const_iterator script = m_scriptPaths.find(scriptPath);
   if (script == m_scriptPaths.end())
   {
+#ifdef RETRORIG_PL4
     printf("debug jc: (script == m_scriptPaths.end()) terminating\n");
+#endif
     return false;
   }
+#ifdef RETRORIG_PL4
   printf("debug jc: skipping overlay I\n");
+#endif
   //myVar = Stop(script->second, wait);
-  
+#ifdef RETRORIG_PL4
   printf("debug jc: CScriptInvocationManager::Stop (overlay II) terminated\n");
   CLog::Log(LOGNOTICE, "debug jc: CScriptInvocationManager::Stop (overlay II) terminated");
-  
+#endif
   return myVar;
 }
 

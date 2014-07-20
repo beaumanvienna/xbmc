@@ -72,21 +72,26 @@ bool CService::Start()
 
 bool CService::Stop()
 {
+#ifdef RETRORIG_PL4
   printf("debug jc: CService::Stop()\n");
   CLog::Log(LOGNOTICE, "debug jc: CService::Stop()");
-  
+#endif
   bool ret = true;
 
   switch (m_type)
   {
 #ifdef HAS_PYTHON
   case PYTHON:
+#ifdef RETRORIG_PL4
     printf("debug jc: case PYTHON\n");
     CLog::Log(LOGNOTICE, "debug jc: case PYTHON");
     printf("debug jc: script path is %s\n",LibPath().c_str());
+#endif
     ret = CScriptInvocationManager::Get().Stop(LibPath());
+#ifdef RETRORIG_PL4
     printf("debug jc: after CScriptInvocationManager::Get().Stop(LibPath()\n");
     CLog::Log(LOGNOTICE, "debug jc: CScriptInvocationManager::Get().Stop(LibPath()");
+#endif
     break;
 #endif
 

@@ -46,6 +46,7 @@ extern bool shuttingDown;
 CThread::CThread(const char* ThreadName)
 : m_StopEvent(true,true), m_TermEvent(true), m_StartEvent(true)
 {
+#ifdef RETRORIG_PL4
   if (ThreadName)
   {
     printf("debug jc: CThread::CThread(const char* ThreadName) (Overlay I) for new thread '%s'\n",ThreadName);
@@ -54,6 +55,7 @@ CThread::CThread(const char* ThreadName)
   {
      printf("debug jc: CThread::CThread(const char* ThreadName) (Overlay I) with no name\n");
   }
+#endif
   m_bStop = false;
 
   m_bAutoDelete = false;
@@ -68,12 +70,15 @@ CThread::CThread(const char* ThreadName)
   {
     m_ThreadName = ThreadName;
   }
+#ifdef RETRORIG_PL4
   printf("debug jc: CThread::CThread(const char* ThreadName) (Overlay I) terminated\n");
+#endif
 }
 
 CThread::CThread(IRunnable* pRunnable, const char* ThreadName)
 : m_StopEvent(true,true), m_TermEvent(true), m_StartEvent(true)
 {
+#ifdef RETRORIG_PL4
   if (ThreadName)
   {
     printf("debug jc: CThread::CThread(const char* ThreadName) (Overlay II) for new thread '%s'\n",ThreadName);
@@ -82,6 +87,7 @@ CThread::CThread(IRunnable* pRunnable, const char* ThreadName)
   {
      printf("debug jc: CThread::CThread(const char* ThreadName) (Overlay II) with no name\n");
   }
+#endif
   m_bStop = false;
 
   m_bAutoDelete = false;
@@ -96,30 +102,44 @@ CThread::CThread(IRunnable* pRunnable, const char* ThreadName)
   {
     m_ThreadName = ThreadName;
   }
+#ifdef RETRORIG_PL4
   printf("debug jc: CThread::CThread(const char* ThreadName) (Overlay II)\n");
+#endif
 }
 
 CThread::~CThread()
 {
+#ifdef RETRORIG_PL4
   printf("debug jc: CThread::~CThread() for '%s'\n",m_ThreadName.c_str());
+#endif
   if (!shuttingDown) 
   {
+#ifdef RETRORIG_PL4
     printf("debug jc: CThread::~CThread is executing StopThread() to stop '%s';\n", m_ThreadName.c_str());
+#endif
     StopThread();
   }
   else
   {
+#ifdef RETRORIG_PL4
     printf("debug jc: skipping StopThread() to prevent deadlock!\n");
+#endif
   }
+#ifdef RETRORIG_PL4
   printf("debug jc: CThread::~CThread() terminated\n");
+#endif
 }
 
 void CThread::Create(bool bAutoDelete, unsigned stacksize)
 {
+#ifdef RETRORIG_PL4
   printf("debug jc: CThread::Create() for '%s'\n",m_ThreadName.c_str());
+#endif
   if (m_ThreadId != 0)
   {
+#ifdef RETRORIG_PL4
     printf("debug jc: fatal error creating thread- old thread id not null\n");
+#endif
     LOG(LOGERROR, "%s - fatal error creating thread- old thread id not null", __FUNCTION__);
     exit(1);
   }
@@ -133,7 +153,9 @@ void CThread::Create(bool bAutoDelete, unsigned stacksize)
   m_StartEvent.Reset();
 
   SpawnThread(stacksize);
+#ifdef RETRORIG_PL4
   printf("debug jc: CThread::Create() terminated\n");
+#endif
 }
 
 bool CThread::IsRunning() const
@@ -235,7 +257,9 @@ void CThread::Sleep(unsigned int milliseconds)
 
 void CThread::Action()
 {
+#ifdef RETRORIG_PL4
   printf("RetroRig #45: CThread::Action() %s\n",m_ThreadName.c_str());
+#endif
   try
   {
     OnStartup();

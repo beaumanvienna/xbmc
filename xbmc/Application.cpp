@@ -2088,8 +2088,10 @@ void CApplication::LoadSkin(const SkinPtr& skin)
 
 void CApplication::UnloadSkin(bool forReload /* = false */)
 {
+#ifdef RETRORIG_PL4
   printf("debug jc: CApplication::UnloadSkin\n");
   CLog::Log(LOGWARNING, "debug jc: CApplication::UnloadSkin");
+#endif
   m_skinReloading = forReload;
 
   CLog::Log(LOGINFO, "Unloading old skin %s...", forReload ? "for reload " : "");
@@ -2110,10 +2112,10 @@ void CApplication::UnloadSkin(bool forReload /* = false */)
   g_colorManager.Clear();
 
   g_infoManager.Clear();
-  
+#ifdef RETRORIG_PL4
   printf("debug jc: CApplication::UnloadSkin terminated\n");
   CLog::Log(LOGWARNING, "debug jc: CApplication::UnloadSkin terminated");
-
+#endif
 //  The g_SkinInfo boost shared_ptr ought to be reset here
 // but there are too many places it's used without checking for NULL
 // and as a result a race condition on exit can cause a crash.
@@ -3565,7 +3567,9 @@ bool CApplication::Cleanup()
 
 void CApplication::Stop(int exitCode)
 {
+#ifdef RETRORIG_PL4
   printf("debug jc: CApplication::Stop()\n");
+#endif
   try
   {
     CVariant vExitCode(exitCode);
@@ -3655,40 +3659,48 @@ void CApplication::Stop(int exitCode)
     
     
     g_mediaManager.Stop();
-    
+#ifdef RETRORIG_PL4
     printf("debug jc: after g_mediaManager.Stop();\n");
     CLog::Log(LOGNOTICE, "debug jc: after g_mediaManager.Stop();");
-
+#endif
     // Stop services before unloading Python
     CAddonMgr::Get().StopServices(false);
-    
+#ifdef RETRORIG_PL4
     printf("debug jc: after CAddonMgr::Get().StopServices(false);\n");
     CLog::Log(LOGNOTICE, "debug jc: after CAddonMgr::Get().StopServices(false);");
-
+#endif
     // stop all remaining scripts; must be done after skin has been unloaded,
     // not before some windows still need it when deinitializing during skin
     // unloading
     CScriptInvocationManager::Get().Uninitialize();
-    
+#ifdef RETRORIG_PL4
     printf("debug jc: CScriptInvocationManager::Get().Uninitialize();\n");
     CLog::Log(LOGNOTICE, "debug jc: CScriptInvocationManager::Get().Uninitialize();");
-
+#endif
     g_Windowing.DestroyRenderSystem();
+#ifdef RETRORIG_PL4
     printf("debug jc: after DestroyRenderSystem\n");
     CLog::Log(LOGNOTICE, "debug jc: after DestroyRenderSystem");
+#endif
     g_Windowing.DestroyWindow();
+#ifdef RETRORIG_PL4
     printf("debug jc: after DestroyWindow\n");
     CLog::Log(LOGNOTICE, "debug jc: after DestroyWindow");
+#endif
     g_Windowing.DestroyWindowSystem();
-    
+#ifdef RETRORIG_PL4
     printf("debug jc: after destroyWindowSystem\n");
     CLog::Log(LOGNOTICE, "debug jc: after destroy");
-
+#endif
     // shutdown the AudioEngine
     CAEFactory::Shutdown();
+#ifdef RETRORIG_PL4
     printf("debug jc: after CAEFactory::Shutdown();\n");
+#endif
     CAEFactory::UnLoadEngine();
+#ifdef RETRORIG_PL4
     printf("debug jc: after CAEFactory::UnLoadEngine();\n");
+#endif
     
     // unregister ffmpeg lock manager call back
     av_lockmgr_register(NULL);
@@ -3702,9 +3714,13 @@ void CApplication::Stop(int exitCode)
 
   // we may not get to finish the run cycle but exit immediately after a call to g_application.Stop()
   // so we may never get to Destroy() in CXBApplicationEx::Run(), we call it here.
+#ifdef RETRORIG_PL4
   printf("debug jc: calling Destroy()\n");
+#endif
   Destroy();
+#ifdef RETRORIG_PL4
   printf("debug jc: CApplication::Stop() terminated\n");
+#endif
   
   //
   Sleep(200);
@@ -4837,7 +4853,9 @@ bool CApplication::IsIdleShutdownInhibited() const
 
 bool CApplication::OnMessage(CGUIMessage& message)
 {
+#ifdef RETRORIG_PL4
   printf("RetroRig #45: CApplication::OnMessage %d\n",message.GetMessage());
+#endif
   switch ( message.GetMessage() )
   {
   case GUI_MSG_NOTIFY_ALL:
@@ -5076,7 +5094,9 @@ bool CApplication::OnMessage(CGUIMessage& message)
 
 bool CApplication::ExecuteXBMCAction(std::string actionStr)
 {
+#ifdef RETRORIG_PL4
   printf("RetroRig #45: CApplication::ExecuteXBMCAction %s\n",actionStr.c_str());
+#endif
   // see if it is a user set string
 
   //We don't know if there is unsecure information in this yet, so we

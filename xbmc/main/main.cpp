@@ -74,9 +74,13 @@ int main(int argc, char* argv[])
   CAppParamParser appParamParser;
   appParamParser.Parse((const char **)argv, argc);
 #endif
+#ifdef RETRORIG_PL4
   printf("debug jc: XBMC_Run(renderGUI);\n");
+#endif
   exitCode=XBMC_Run(renderGUI);
   shuttingDown = true;
+#ifdef RETRORIG_PL4
   printf("debug jc: XBMC_Run(renderGUI) teminated\n");
+#endif
   return exitCode;
 }

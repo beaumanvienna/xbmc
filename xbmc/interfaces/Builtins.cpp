@@ -257,7 +257,9 @@ void CBuiltins::GetHelp(CStdString &help)
 
 int CBuiltins::Execute(const CStdString& execString)
 {
+#ifdef RETRORIG_PL4
   printf("RetroRig #45: CBuiltins::Execute %s\n",execString.c_str());
+#endif
   // Get the text after the "XBMC."
   CStdString execute;
   vector<CStdString> params;

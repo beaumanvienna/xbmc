@@ -518,7 +518,9 @@ bool CGUIMediaWindow::OnMessage(CGUIMessage& message)
 // Override this function in a derived class to add new controls
 void CGUIMediaWindow::UpdateButtons()
 {
+#ifdef RETRORIG_PL4
   printf("RetroRig #45: CGUIMediaWindow::UpdateButtons()\n");
+#endif
   if (m_guiState.get())
   {
     // Update sorting controls
