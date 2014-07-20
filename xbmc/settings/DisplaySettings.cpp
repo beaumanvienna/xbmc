@@ -328,9 +328,15 @@ bool CDisplaySettings::OnSettingUpdate(CSetting* &setting, const char *oldSettin
 
 void CDisplaySettings::SetCurrentResolution(RESOLUTION resolution, bool save /* = false */)
 {
+#ifdef RETRORIG_PL5
+  printf("RetroRig #68: CDisplaySettings::SetCurrentResolution\n");
+#endif
   if (save)
   {
     string mode = GetStringFromResolution(resolution);
+#ifdef RETRORIG_PL5
+    printf("RetroRig #68: mode = %s\n",mode.c_str());
+#endif
     CSettings::Get().SetString("videoscreen.screenmode", mode.c_str());
   }
 
@@ -526,6 +532,9 @@ RESOLUTION CDisplaySettings::FindBestMatchingResolution(const std::map<RESOLUTIO
 
 RESOLUTION CDisplaySettings::GetResolutionFromString(const std::string &strResolution)
 {
+#ifdef RETRORIG_PL5
+  printf("RetroRig #68: CDisplaySettings::GetResolutionFromString(string %s)\n",strResolution.c_str());
+#endif
   if (strResolution == "DESKTOP")
     return RES_DESKTOP;
   else if (strResolution == "WINDOW")
