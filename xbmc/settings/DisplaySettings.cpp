@@ -35,6 +35,7 @@
 #include "utils/StringUtils.h"
 #include "utils/XMLUtils.h"
 #include "windowing/WindowingFactory.h"
+#include "windowing/X11/XRandR.h"
 
 // 0.1 second increments
 #define MAX_REFRESH_CHANGE_DELAY 200
@@ -214,6 +215,7 @@ void CDisplaySettings::Clear()
 
 bool CDisplaySettings::OnSettingChanging(const CSetting *setting)
 {
+
   if (setting == NULL)
     return false;
 
@@ -328,15 +330,70 @@ bool CDisplaySettings::OnSettingUpdate(CSetting* &setting, const char *oldSettin
 
 void CDisplaySettings::SetCurrentResolution(RESOLUTION resolution, bool save /* = false */)
 {
-#ifdef RETRORIG_PL5
-  printf("RetroRig #68: CDisplaySettings::SetCurrentResolution\n");
-#endif
+//#define RETRORIG_PL5
+
+  #ifdef RETRORIG_PL5
+    printf("RetroRig #68: CDisplaySettings::SetCurrentResolution\n");
+  #endif
+
+#if defined(HAS_XRANDR)  
+  std::string displayNameXRANDR, displayNameFromSettings;
+  int numScreens;
+
+  // get monitor name from xbmc settings
+  displayNameFromSettings = CSettings::Get().GetString("videoscreen.monitor");
+
+  #ifdef RETRORIG_PL5
+    printf("displayNameFromSettings = %s\n",displayNameFromSettings.c_str());
+  #endif
+  
+  // set to head 0, if "Default" monitor selected
+  if (!displayNameFromSettings.compare("Default"))
+  {
+    #ifdef RETRORIG_PL5
+      printf("found default, export SDL_VIDEO_FULLSCREEN_HEAD=0\n");
+    #endif
+    setenv("SDL_VIDEO_FULLSCREEN_HEAD","0", 1);
+  }
+  else // search monitor in XRANDR arry
+  {
+    // get amount of monitors from XRANDR
+    numScreens = g_xrandr.GetNumScreens(); // to be done
+
+    // loop through XRANDR monitors, for two monitors at maximum (dual-head)
+    for (int i=0;(i<numScreens+1)&&(i<2);i++)
+    {
+      // get monitor name from XRANDR
+      displayNameXRANDR = g_xrandr.GetModes()[i].name;
+      #ifdef RETRORIG_PL5
+        printf("RetroRig #68: name[%d] = %s\n",i,displayNameXRANDR.c_str());
+      #endif
+
+      // compare with xbmc settings
+      if(!displayNameFromSettings.compare(displayNameXRANDR.c_str()))
+      {
+        // match found
+        
+        // convert loop counter to ASCII character
+        std::ostringstream s; 
+        s << i; 
+        std::string head = s.str(); 
+        #ifdef RETRORIG_PL5
+	  printf("export SDL_VIDEO_FULLSCREEN_HEAD=%s\n",head.c_str());
+        #endif
+        
+        // set environment "SDL_VIDEO_FULLSCREEN_HEAD"
+        // for SDL games
+        setenv("SDL_VIDEO_FULLSCREEN_HEAD",head.c_str(), 1);
+      }
+    }
+  }
+#endif //if defined(HAS_XRANDR) 
+
+  
   if (save)
   {
     string mode = GetStringFromResolution(resolution);
-#ifdef RETRORIG_PL5
-    printf("RetroRig #68: mode = %s\n",mode.c_str());
-#endif
     CSettings::Get().SetString("videoscreen.screenmode", mode.c_str());
   }
 
@@ -532,9 +589,6 @@ RESOLUTION CDisplaySettings::FindBestMatchingResolution(const std::map<RESOLUTIO
 
 RESOLUTION CDisplaySettings::GetResolutionFromString(const std::string &strResolution)
 {
-#ifdef RETRORIG_PL5
-  printf("RetroRig #68: CDisplaySettings::GetResolutionFromString(string %s)\n",strResolution.c_str());
-#endif
   if (strResolution == "DESKTOP")
     return RES_DESKTOP;
   else if (strResolution == "WINDOW")
