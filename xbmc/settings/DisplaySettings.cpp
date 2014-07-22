@@ -358,7 +358,7 @@ void CDisplaySettings::SetCurrentResolution(RESOLUTION resolution, bool save /* 
   else // search monitor in XRANDR arry
   {
     // get amount of monitors from XRANDR
-    numScreens = g_xrandr.GetNumScreens(); // to be done
+    numScreens = g_xrandr.GetNumScreens(); 
 
     // loop through XRANDR monitors, for two monitors at maximum (dual-head)
     for (int i=0;(i<numScreens+1)&&(i<2);i++)
