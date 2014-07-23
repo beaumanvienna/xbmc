@@ -359,9 +359,13 @@ void CDisplaySettings::SetCurrentResolution(RESOLUTION resolution, bool save /* 
   {
     // get amount of monitors from XRANDR
     numScreens = g_xrandr.GetNumScreens(); 
+    
+    #ifdef RETRORIG_PL5
+      printf("RetroRig #68: amount of screens found: %d\n",numScreens);
+    #endif
 
-    // loop through XRANDR monitors, for two monitors at maximum (dual-head)
-    for (int i=0;(i<numScreens+1)&&(i<2);i++)
+    // loop through XRANDR monitors
+    for (int i=0;i<numScreens;i++)
     {
       // get monitor name from XRANDR
       displayNameXRANDR = g_xrandr.GetModes()[i].name;

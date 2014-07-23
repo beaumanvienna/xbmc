@@ -433,7 +433,7 @@ unsigned int CXRandR::GetNumScreens(void)
   #ifdef RETRORIG_PL5
     printf("RetroRig #68: CXRandR::GetNumScreens(void)\n");
   #endif
-  return m_numScreens;
+  return m_outputs.size();
 }
 
 bool CXRandR::IsOutputConnected(CStdString name)

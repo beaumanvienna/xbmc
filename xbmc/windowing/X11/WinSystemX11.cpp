@@ -1049,7 +1049,33 @@ bool CWinSystemX11::CreateIconPixmap()
   gRatio = vis->green_mask / 255.0;
   bRatio = vis->blue_mask / 255.0;
 
-  CBaseTexture *iconTexture = CBaseTexture::LoadFromFile("/usr/share/icons/retro-icon.png");
+  //#define #ifdef RETRORIG_PL5
+  CStdString userHome;
+  bool modeRetroRig = false;
+  int countSlash;
+  CBaseTexture *iconTexture;
+  std::size_t found;
+  if (getenv("HOME"))
+  {
+    userHome = getenv("HOME");
+    found = userHome.find(".retrorig");
+    modeRetroRig = (found!=std::string::npos);
+  }
+  
+  if (modeRetroRig)
+  {
+    #ifdef RETRORIG_PL5
+      printf("RetroRig: modeRetroRig\n");
+    #endif
+    iconTexture = CBaseTexture::LoadFromFile("/usr/share/icons/retro-icon.png");
+  }
+  else
+  {
+    #ifdef RETRORIG_PL5
+      printf("using xbmc icon\n");
+    #endif
+    iconTexture = CBaseTexture::LoadFromFile("special://xbmc/media/icon256x256.png");
+  }  
 
   if (!iconTexture)
     return false;
