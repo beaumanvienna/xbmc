@@ -1052,7 +1052,6 @@ bool CWinSystemX11::CreateIconPixmap()
   //#define #ifdef RETRORIG_PL5
   CStdString userHome;
   bool modeRetroRig = false;
-  int countSlash;
   CBaseTexture *iconTexture;
   std::size_t found;
   if (getenv("HOME"))

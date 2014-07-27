@@ -1042,10 +1042,28 @@ bool CApplication::CreateGUI()
     }
     else
     {
-      CLog::Log(LOGINFO, "load default splash image: %s", CSpecialProtocol::TranslatePath("special://xbmc/media/Splash.png").c_str());
-      m_splash = new CSplash("special://xbmc/media/Splash.png");
+      //#define #ifdef RETRORIG_PL6
+      CStdString userHome;
+      bool modeRetroRig = false;
+      std::size_t found;
+      if (getenv("HOME"))
+      {
+        userHome = getenv("HOME");
+        found = userHome.find(".retrorig");
+        modeRetroRig = (found!=std::string::npos);
+      }
+  
+      if (modeRetroRig)
+      {
+        m_splash = new CSplash("special://xbmc/media/Splash_retrorig.png");
+      }
+      else
+      {
+        m_splash = new CSplash("special://xbmc/media/Splash.png");
+      }  
     }
     m_splash->Show();
+    sleep(2);
   }
 
   // The key mappings may already have been loaded by a peripheral
