@@ -37,6 +37,9 @@
 #include "windowing/WindowingFactory.h"
 #include "windowing/X11/XRandR.h"
 
+#include <iostream>     // std::cout
+#include <fstream>      // std::ifstream
+
 // 0.1 second increments
 #define MAX_REFRESH_CHANGE_DELAY 200
 
@@ -330,9 +333,9 @@ bool CDisplaySettings::OnSettingUpdate(CSetting* &setting, const char *oldSettin
 
 void CDisplaySettings::SetCurrentResolution(RESOLUTION resolution, bool save /* = false */)
 {
-//#define RETRORIG_PL5
+//#define RETRORIG_PL6
 
-  #ifdef RETRORIG_PL5
+  #ifdef RETRORIG_PL6
     printf("RetroRig #68: CDisplaySettings::SetCurrentResolution\n");
   #endif
 
@@ -343,14 +346,14 @@ void CDisplaySettings::SetCurrentResolution(RESOLUTION resolution, bool save /* 
   // get monitor name from xbmc settings
   displayNameFromSettings = CSettings::Get().GetString("videoscreen.monitor");
 
-  #ifdef RETRORIG_PL5
+  #ifdef RETRORIG_PL6
     printf("displayNameFromSettings = %s\n",displayNameFromSettings.c_str());
   #endif
-  
+    
   // set to head 0, if "Default" monitor selected
   if (!displayNameFromSettings.compare("Default"))
   {
-    #ifdef RETRORIG_PL5
+    #ifdef RETRORIG_PL6
       printf("found default, export SDL_VIDEO_FULLSCREEN_HEAD=0\n");
     #endif
     setenv("SDL_VIDEO_FULLSCREEN_HEAD","0", 1);
@@ -360,7 +363,7 @@ void CDisplaySettings::SetCurrentResolution(RESOLUTION resolution, bool save /* 
     // get amount of monitors from XRANDR
     numScreens = g_xrandr.GetNumScreens(); 
     
-    #ifdef RETRORIG_PL5
+    #ifdef RETRORIG_PL6
       printf("RetroRig #68: amount of screens found: %d\n",numScreens);
     #endif
 
@@ -369,7 +372,7 @@ void CDisplaySettings::SetCurrentResolution(RESOLUTION resolution, bool save /* 
     {
       // get monitor name from XRANDR
       displayNameXRANDR = g_xrandr.GetModes()[i].name;
-      #ifdef RETRORIG_PL5
+      #ifdef RETRORIG_PL6
         printf("RetroRig #68: name[%d] = %s\n",i,displayNameXRANDR.c_str());
       #endif
 
@@ -377,21 +380,73 @@ void CDisplaySettings::SetCurrentResolution(RESOLUTION resolution, bool save /* 
       if(!displayNameFromSettings.compare(displayNameXRANDR.c_str()))
       {
         // match found
+
+        std::string searchStr = "<output name=\"" + displayNameXRANDR + "\">"; 
         
-        // convert loop counter to ASCII character
-        std::ostringstream s; 
-        s << i; 
-        std::string head = s.str(); 
-        #ifdef RETRORIG_PL5
-	  printf("export SDL_VIDEO_FULLSCREEN_HEAD=%s\n",head.c_str());
+        #ifdef RETRORIG_PL6
+          printf("Match found. Looking up '%s'\n",searchStr.c_str());
         #endif
-        
-        // set environment "SDL_VIDEO_FULLSCREEN_HEAD"
-        // for SDL games
-        setenv("SDL_VIDEO_FULLSCREEN_HEAD",head.c_str(), 1);
+
+        // find ~/.config/monitors.xml
+        std::string fileName = getenv("HOME");
+        //cut '/home/'
+        fileName = fileName.substr(6,fileName.length()-7);
+        int pos = fileName.find("/");
+        fileName = fileName.substr(0,pos);
+        fileName = "/home/" + fileName + "/.config/monitors.xml";
+        std::ifstream infile(fileName.c_str());
+        bool good = infile.good();
+        if(good)
+        {
+          #ifdef RETRORIG_PL6
+            printf("configuration file found at: %s\n",fileName.c_str());
+          #endif
+
+          std::string line ;
+          int line_number = 0 ;
+          while( std::getline( infile, line ) )
+          {
+            ++line_number ;
+            if ((searchStr!="<primary>") && ( line.find(searchStr) != std::string::npos ))
+            {
+              #ifdef RETRORIG_PL6
+                std::cout << "line " << line_number << ": " << line << '\n' ;
+              #endif
+              searchStr="<primary>";
+            }
+            if ((searchStr=="<primary>") && ( line.find(searchStr) != std::string::npos ))
+            {
+              #ifdef RETRORIG_PL6
+                std::cout << "line " << line_number << ": " << line << '\n' ;
+              #endif
+              if (line.find("no") != std::string::npos )
+              {
+                #ifdef RETRORIG_PL6
+                  printf("export SDL_VIDEO_FULLSCREEN_HEAD=%s\n","1");
+                #endif
+                setenv("SDL_VIDEO_FULLSCREEN_HEAD","1", 1);
+              }
+              else
+              {
+                #ifdef RETRORIG_PL6
+                  printf("export SDL_VIDEO_FULLSCREEN_HEAD=%s\n","0");
+                #endif
+                setenv("SDL_VIDEO_FULLSCREEN_HEAD","0", 1);
+              }
+              break;
+            }
+          }
+        }
+        else
+        {
+          #ifdef RETRORIG_PL6
+            printf("%s not found.\n",fileName.c_str());
+          #endif
+        }
       }
     }
   }
+
 #endif //if defined(HAS_XRANDR) 
 
   
