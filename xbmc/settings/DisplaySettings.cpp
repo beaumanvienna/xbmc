@@ -333,11 +333,13 @@ bool CDisplaySettings::OnSettingUpdate(CSetting* &setting, const char *oldSettin
 
 void CDisplaySettings::SetCurrentResolution(RESOLUTION resolution, bool save /* = false */)
 {
-//#define RETRORIG_PL6
-
-  #ifdef RETRORIG_PL6
-    printf("RetroRig #68: CDisplaySettings::SetCurrentResolution\n");
+  
+//#define RETRORIG_PL7
+  #ifdef RETRORIG_PL7
+    printf("RetroRig #97: CDisplaySettings::SetCurrentResolution\n");
   #endif
+  
+//#define RETRORIG_PL6
 
 #if defined(HAS_XRANDR)  
   std::string displayNameXRANDR, displayNameFromSettings;
@@ -457,8 +459,58 @@ void CDisplaySettings::SetCurrentResolution(RESOLUTION resolution, bool save /* 
   }
 
   m_currentResolution = resolution;
-
+  
   SetChanged();
+  
+  /*********************************************************/
+  /* RETRORIG_PL7                                          */
+  /*                                                       */
+  /* Call RetroRig script to set up emulator resolutions.  */
+  /*                                                       */
+  /*********************************************************/
+  
+  const RESOLUTION_INFO &info = CDisplaySettings::Get().GetResolutionInfo(resolution);
+  
+  #ifdef RETRORIG_PL7
+    printf("RetroRig #97: screen resoltuion is %d by %d\n",info.iScreenWidth,info.iScreenHeight);
+  #endif
+    
+  CStdString userHome;
+  bool modeRetroRig = false;
+  std::size_t found;
+  if (getenv("HOME"))
+  {
+    userHome = getenv("HOME");
+    found = userHome.find(".retrorig");
+    modeRetroRig = (found!=std::string::npos);
+  }
+  
+  if (modeRetroRig)
+  {
+    CStdString script = userHome + "/RetroRig/scripts/setResolution.sh";
+    
+    #ifdef RETRORIG_PL7
+      printf("RetroRig #97: script path = %s\n",script.c_str());
+    #endif
+
+    std::ifstream infile(script.c_str());
+    bool good = infile.good();
+    if(good)    
+    {
+      #ifdef RETRORIG_PL7
+        printf("RetroRig #97: file found\n");
+      #endif
+      std::stringstream stream;    
+      stream << script.c_str() << " " << info.iScreenWidth << " " << info.iScreenHeight;
+      system(stream.str().c_str());
+    }
+    else
+    {
+      #ifdef RETRORIG_PL7
+        printf("RetroRig #97: file not found\n");
+      #endif
+    }
+  }
 }
 
 RESOLUTION CDisplaySettings::GetDisplayResolution() const
