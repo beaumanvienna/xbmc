@@ -333,7 +333,7 @@ bool CDisplaySettings::OnSettingUpdate(CSetting* &setting, const char *oldSettin
 
 void CDisplaySettings::SetCurrentResolution(RESOLUTION resolution, bool save /* = false */)
 {
-  
+//#define RETRORIG_PL8  
 //#define RETRORIG_PL7
   #ifdef RETRORIG_PL7
     printf("RetroRig #97: CDisplaySettings::SetCurrentResolution\n");
@@ -342,7 +342,7 @@ void CDisplaySettings::SetCurrentResolution(RESOLUTION resolution, bool save /* 
 //#define RETRORIG_PL6
 
 #if defined(HAS_XRANDR)  
-  std::string displayNameXRANDR, displayNameFromSettings;
+  std::string displayNameXRANDR, displayNameFromSettings,displayNameToPassDownToRetroRig;
   int numScreens;
 
   // get monitor name from xbmc settings
@@ -469,6 +469,27 @@ void CDisplaySettings::SetCurrentResolution(RESOLUTION resolution, bool save /* 
   /*                                                       */
   /*********************************************************/
   
+  // display name
+  if (!displayNameFromSettings.compare("Default"))
+  {
+    
+    displayNameToPassDownToRetroRig=g_xrandr.GetModes()[0].name;
+    
+    #ifdef RETRORIG_PL8
+      printf("found default, setting display name to XRANDR name: %s\n",displayNameToPassDownToRetroRig.c_str());
+    #endif
+  }
+  else // search monitor in XRANDR arry
+  {
+    
+    displayNameToPassDownToRetroRig=displayNameXRANDR=displayNameFromSettings;
+    
+    #ifdef RETRORIG_PL8
+      printf("setting display name to name from settings: %s\n",displayNameToPassDownToRetroRig.c_str());
+    #endif
+    
+  }
+  
   const RESOLUTION_INFO &info = CDisplaySettings::Get().GetResolutionInfo(resolution);
   
   #ifdef RETRORIG_PL7
@@ -501,7 +522,7 @@ void CDisplaySettings::SetCurrentResolution(RESOLUTION resolution, bool save /* 
         printf("RetroRig #97: file found\n");
       #endif
       std::stringstream stream;    
-      stream << script.c_str() << " " << info.iScreenWidth << " " << info.iScreenHeight;
+      stream << script.c_str() << " " << info.iScreenWidth << " " << info.iScreenHeight << " " << displayNameToPassDownToRetroRig;
       system(stream.str().c_str());
     }
     else
