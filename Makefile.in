@@ -258,9 +258,9 @@ LIBADDON_DIRS=\
 CONFLUENCE_MEDIA=addons/skin.confluence/media
 SKIN_DIRS=$(CONFLUENCE_MEDIA)
 
-ifeq (@USE_SKIN_TOUCHED@,1)
-TOUCHED_MEDIA=addons/skin.touched/media
-SKIN_DIRS+=$(TOUCHED_MEDIA)
+ifeq (@USE_TOUCH_SKIN@,1)
+TOUCH_SKIN_MEDIA=addons/skin.re-touched/media
+SKIN_DIRS+=$(TOUCH_SKIN_MEDIA)
 endif
 
 LIBS=@LIBS@
@@ -291,15 +291,21 @@ GTEST_LIBS = $(GTEST_DIR)/lib/.libs/libgtest.a
 
 CHECK_DIRS = xbmc/addons/test \
              xbmc/filesystem/test \
+             xbmc/music/tags/test \
              xbmc/utils/test \
+             xbmc/video/test \
              xbmc/threads/test \
              xbmc/interfaces/python/test \
+             xbmc/cores/AudioEngine/Sinks/test \
              xbmc/test
 CHECK_LIBS = xbmc/addons/test/addonsTest.a \
              xbmc/filesystem/test/filesystemTest.a \
+             xbmc/music/tags/test/tagsTest.a \
              xbmc/utils/test/utilsTest.a \
+             xbmc/video/test/videoTest.a \
              xbmc/threads/test/threadTest.a \
              xbmc/interfaces/python/test/pythonSwigTest.a \
+             xbmc/cores/AudioEngine/Sinks/test/AESinkTest.a \
              xbmc/test/xbmc-test.a
 
 ifeq (@USE_WAYLAND@,1)
@@ -347,8 +353,8 @@ config.status: configure
 ifeq (@USE_TEXTUREPACKER@,1)
 skins: tools/TexturePacker/TexturePacker force
 	 $(MAKE) -C $(CONFLUENCE_MEDIA)
-ifeq (@USE_SKIN_TOUCHED@,1)
-	 $(MAKE) -C $(TOUCHED_MEDIA)
+ifeq (@USE_TOUCH_SKIN@,1)
+	 $(MAKE) -C $(TOUCH_SKIN_MEDIA)
 endif
 else
 skins:
@@ -509,24 +515,8 @@ DIRS= $(BIN_DIRS) $(EC_DIRS) $(XBMCTEX_DIRS) $(DVDPCODECS_DIRS) $(PAPCODECS_DIRS
 $(NWAOBJSXBMC) $(DIRECTORY_ARCHIVES) $(MAINOBJS): force
 	@$(MAKE) $(if $(V),,-s) -C $(@D)
 
-# sync these entries manually with tools/depends/target/xbmc-addon-bindings/Makefile
-BINDINGS =xbmc/addons/include/xbmc_addon_cpp_dll.h
-BINDINGS+=xbmc/addons/include/xbmc_addon_dll.h
-BINDINGS+=xbmc/addons/include/xbmc_addon_types.h
-BINDINGS+=xbmc/addons/include/xbmc_codec_types.h
-BINDINGS+=xbmc/addons/include/xbmc_epg_types.h
-BINDINGS+=xbmc/addons/include/xbmc_pvr_dll.h
-BINDINGS+=xbmc/addons/include/xbmc_pvr_types.h
-BINDINGS+=xbmc/addons/include/xbmc_scr_dll.h
-BINDINGS+=xbmc/addons/include/xbmc_scr_types.h
-BINDINGS+=xbmc/addons/include/xbmc_vis_dll.h
-BINDINGS+=xbmc/addons/include/xbmc_vis_types.h
-BINDINGS+=xbmc/addons/include/xbmc_stream_utils.hpp
-BINDINGS+=addons/library.xbmc.addon/libXBMC_addon.h
-BINDINGS+=addons/library.xbmc.gui/libXBMC_gui.h
-BINDINGS+=addons/library.xbmc.pvr/libXBMC_pvr.h
-BINDINGS+=addons/library.xbmc.codec/libXBMC_codec.h
-BINDINGS+=xbmc/cores/dvdplayer/DVDDemuxers/DVDDemuxPacket.h
+# Binary Addon bindings
+include xbmc/addons/addon-bindings.mk
 
 libxbmc.so: $(OBJSXBMC) $(DYNOBJSXBMC) $(NWAOBJSXBMC) $(MAINOBJS)
 ifeq ($(findstring osx,@ARCH@), osx)
@@ -590,7 +580,7 @@ ifeq (@USE_PVR_ADDONS@,1)
 	$(MAKE) -C pvr-addons install
 endif
 ifeq ($(findstring freebsd,@ARCH@), freebsd)
-	@find -E system addons -type f -not -iregex ".*svn.*" \
+	@find -E system addons -type f -not -iregex ".*\.git.*" \
 		-iregex ".*@ARCH@.*|.*\.vis|.*\.xbs" \
 		-exec sh -c "install -d \"$(DESTDIR)$(libdir)/xbmc/\`dirname '{}'\`\"" \; \
 		-and \
@@ -598,14 +588,14 @@ ifeq ($(findstring freebsd,@ARCH@), freebsd)
 		-exec printf " -- %-75.75s\r" "{}" \;
 else
 ifeq ($(findstring Darwin,$(shell uname -s)),Darwin)
-	@find -E system addons -type f -not -iregex ".*svn.*" \
+	@find -E system addons -type f -not -iregex ".*\.git.*" \
 		-iregex ".*@ARCH@.*|.*\.vis|.*\.xbs" \
 		-exec sh -c "install -d \"$(DESTDIR)$(libdir)/xbmc/\`dirname '{}'\`\"" \; \
 		-and \
 		-exec install "{}" $(DESTDIR)$(libdir)/xbmc/"{}" \; \
 		-exec printf " -- %-75.75s\r" "{}" \;
 else
-	@find system addons -regextype posix-extended -type f -not -iregex ".*svn.*" -iregex ".*\.so|.*\.vis|.*\.xbs|.*\.pvr" -exec install -D "{}" $(DESTDIR)$(libdir)/xbmc/"{}" \; -printf " -- %-75.75f\r"
+	@find system addons -regextype posix-extended -type f -not -iregex ".*\.git.*" -iregex ".*\.so|.*\.vis|.*\.xbs|.*\.pvr" -exec install -D "{}" $(DESTDIR)$(libdir)/xbmc/"{}" \; -printf " -- %-75.75f\r"
 endif
 endif
 
@@ -630,7 +620,7 @@ install-datas: install-scripts
 	@# Arch independent files
 ifeq ($(findstring bsd,@ARCH@), bsd)
 	@find -E addons language media sounds userdata system -type f \
-		-not -iregex ".*@ARCH@.*|.*\.vis|.*\.xbs|.*svn.*|.*\.so|.*\.dll|$(subst ${space},|,$(INSTALL_FILTER))" \
+		-not -iregex ".*@ARCH@.*|.*\.vis|.*\.xbs|.*\.git.*|.*\.so|.*\.dll|$(subst ${space},|,$(INSTALL_FILTER))" \
 		-exec sh -c "install -d \"$(DESTDIR)$(datarootdir)/xbmc/\`dirname '{}'\`\"" \; \
 		-and \
 		-exec install -m 0644 "{}" $(DESTDIR)$(datarootdir)/xbmc/"{}" \; \
@@ -638,13 +628,13 @@ ifeq ($(findstring bsd,@ARCH@), bsd)
 else
 ifeq ($(findstring Darwin,$(shell uname -s)),Darwin)
 	@find -E addons language media sounds userdata system -type f \
-		-not -iregex ".*@ARCH@.*|.*\.vis|.*\.xbs|.*svn.*|.*\.so|.*\.dll|$(subst ${space},|,$(INSTALL_FILTER))" \
+		-not -iregex ".*@ARCH@.*|.*\.vis|.*\.xbs|.*\.git.*|.*\.so|.*\.dll|$(subst ${space},|,$(INSTALL_FILTER))" \
 		-exec sh -c "install -d \"$(DESTDIR)$(datarootdir)/xbmc/\`dirname '{}'\`\"" \; \
 		-and \
 		-exec install -m 0644 "{}" $(DESTDIR)$(datarootdir)/xbmc/"{}" \; \
 		-exec printf " -- %-75.75s\r" "{}" \;
 else
-	@find addons language media sounds userdata system -regextype posix-extended -type f -not -iregex ".*@ARCH@.*|.*\.vis|.*\.xbs|.*svn.*|.*\.so|.*\.dll|.*\.pvr|$(subst ${space},|,$(INSTALL_FILTER))" -exec install -D -m 0644 "{}" $(DESTDIR)$(datarootdir)/xbmc/"{}" \; -printf " -- %-75.75f\r"
+	@find addons language media sounds userdata system -regextype posix-extended -type f -not -iregex ".*@ARCH@.*|.*\.vis|.*\.xbs|.*\.git.*|.*\.so|.*\.dll|.*\.pvr|$(subst ${space},|,$(INSTALL_FILTER))" -exec install -D -m 0644 "{}" $(DESTDIR)$(datarootdir)/xbmc/"{}" \; -printf " -- %-75.75f\r"
 endif
 endif
 	@# Icons and links
@@ -662,6 +652,9 @@ endif
 	  install -m 0644 $$f $(DESTDIR)$(includedir)/xbmc ; \
 	done
 	@for f in project/cmake/*.cmake; do \
+	  install -m 0644 $$f $(DESTDIR)$(libdir)/xbmc; \
+	done
+	@for f in project/cmake/scripts/common/*.cmake; do \
 	  install -m 0644 $$f $(DESTDIR)$(libdir)/xbmc; \
 	done
 

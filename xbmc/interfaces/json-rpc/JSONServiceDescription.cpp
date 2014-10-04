@@ -21,7 +21,6 @@
 #include "ServiceDescription.h"
 #include "JSONServiceDescription.h"
 #include "utils/log.h"
-#include "utils/StdString.h"
 #include "utils/JSONVariantParser.h"
 #include "utils/StringUtils.h"
 #include "JSONRPC.h"
@@ -62,6 +61,7 @@ JsonRpcMethodMap CJSONServiceDescription::m_methodMaps[] = {
 
 // Player
   { "Player.GetActivePlayers",                      CPlayerOperations::GetActivePlayers },
+  { "Player.GetPlayers",                            CPlayerOperations::GetPlayers },
   { "Player.GetProperties",                         CPlayerOperations::GetProperties },
   { "Player.GetItem",                               CPlayerOperations::GetItem },
 
@@ -620,7 +620,7 @@ JSONRPC_STATUS JSONSchemaTypeDefinition::Check(const CVariant &value, CVariant &
   if (!name.empty())
     errorData["name"] = name;
   SchemaValueTypeToJson(type, errorData["type"]);
-  CStdString errorMessage;
+  std::string errorMessage;
 
   if (referencedType != NULL && !referencedTypeSet)
     Set(referencedType);
@@ -673,7 +673,7 @@ JSONRPC_STATUS JSONSchemaTypeDefinition::Check(const CVariant &value, CVariant &
       if (status != OK)
       {
         CLog::Log(LOGDEBUG, "JSONRPC: Value does not match extended type %s of type %s", extends.at(extendsIndex)->ID.c_str(), name.c_str());
-        errorMessage = StringUtils::Format("value does not match extended type %s", extends.at(extendsIndex)->ID.c_str(), name.c_str());
+        errorMessage = StringUtils::Format("value does not match extended type %s", extends.at(extendsIndex)->ID.c_str());
         errorData["message"] = errorMessage.c_str();
         return status;
       }
@@ -735,7 +735,7 @@ JSONRPC_STATUS JSONSchemaTypeDefinition::Check(const CVariant &value, CVariant &
       if (value.size() < items.size() || (value.size() != items.size() && additionalItems.size() == 0))
       {
         CLog::Log(LOGDEBUG, "JSONRPC: One of the array elements does not match in type %s", name.c_str());
-        errorMessage = StringUtils::Format("%d array elements expected but %d received", items.size(), value.size());
+        errorMessage = StringUtils::Format("%" PRIuS" array elements expected but %d received", items.size(), value.size());
         errorData["message"] = errorMessage.c_str();
         return InvalidParams;
       }
@@ -1161,7 +1161,7 @@ JSONSchemaTypeDefinition::CJsonSchemaPropertiesMap::CJsonSchemaPropertiesMap()
 
 void JSONSchemaTypeDefinition::CJsonSchemaPropertiesMap::add(JSONSchemaTypeDefinitionPtr property)
 {
-  CStdString name = property->name;
+  std::string name = property->name;
   StringUtils::ToLower(name);
   m_propertiesmap[name] = property;
 }
@@ -1697,7 +1697,7 @@ JSONRPC_STATUS CJSONServiceDescription::Print(CVariant &result, ITransportLayer 
 
   if (filterByName.size() > 0)
   {
-    CStdString name = filterByName;
+    std::string name = filterByName;
 
     if (filterByType == "method")
     {
@@ -2015,7 +2015,7 @@ void CJSONServiceDescription::CJsonRpcMethodMap::clear()
 
 void CJSONServiceDescription::CJsonRpcMethodMap::add(const JsonRpcMethod &method)
 {
-  CStdString name = method.name;
+  std::string name = method.name;
   StringUtils::ToLower(name);
   m_actionmap[name] = method;
 }

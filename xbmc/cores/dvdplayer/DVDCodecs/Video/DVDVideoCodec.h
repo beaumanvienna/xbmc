@@ -26,6 +26,8 @@
 #include <string>
 #include "cores/VideoRenderers/RenderFormats.h"
 
+
+
 extern "C" {
 #include "libavcodec/avcodec.h"
 }
@@ -45,14 +47,15 @@ struct DVDCodecAvailableType
 #define FRAME_TYPE_B 3
 #define FRAME_TYPE_D 4
 
-namespace DXVA { class CSurfaceContext; }
+namespace DXVA { class CRenderPicture; }
 namespace VAAPI { class CVaapiRenderPicture; }
 namespace VDPAU { class CVdpauRenderPicture; }
 class COpenMax;
 class COpenMaxVideo;
-struct OpenMaxVideoBuffer;
+struct OpenMaxVideoBufferHolder;
 class CDVDVideoCodecStageFright;
 class CDVDMediaCodecInfo;
+class CDVDVideoCodecIMXBuffer;
 typedef void* EGLImageKHR;
 
 
@@ -69,7 +72,7 @@ struct DVDVideoPicture
       int iLineSize[4];   // [4] = alpha channel, currently not used
     };
     struct {
-      DXVA::CSurfaceContext* context;
+      DXVA::CRenderPicture* dxva;
     };
     struct {
       VDPAU::CVdpauRenderPicture* vdpau;
@@ -80,7 +83,7 @@ struct DVDVideoPicture
 
     struct {
       COpenMax *openMax;
-      OpenMaxVideoBuffer *openMaxBuffer;
+      OpenMaxVideoBufferHolder *openMaxBufferHolder;
     };
 
     struct {
@@ -95,6 +98,11 @@ struct DVDVideoPicture
     struct {
       CDVDMediaCodecInfo *mediacodec;
     };
+
+    struct {
+      CDVDVideoCodecIMXBuffer *IMXBuffer;
+    };
+
   };
 
   unsigned int iFlags;
@@ -136,9 +144,9 @@ struct DVDVideoUserData
 #define DVP_FLAG_NOSKIP             0x00000010 // indicate this picture should never be dropped
 #define DVP_FLAG_DROPPED            0x00000020 // indicate that this picture has been dropped in decoder stage, will have no data
 
-#define DVP_FLAG_DROPDEINT          0x00000040 // indicate that this picture was requested to have been dropped in deint stage
-#define DVP_FLAG_NO_POSTPROC        0x00000100 // see GetCodecStats
-#define DVP_FLAG_DRAIN              0x00000200 // see GetCodecStats
+#define DVD_CODEC_CTRL_SKIPDEINT    0x01000000 // indicate that this picture was requested to have been dropped in deint stage
+#define DVD_CODEC_CTRL_NO_POSTPROC  0x02000000 // see GetCodecStats
+#define DVD_CODEC_CTRL_DRAIN        0x04000000 // see GetCodecStats
 
 // DVP_FLAG 0x00000100 - 0x00000f00 is in use by libmpeg2!
 
@@ -312,10 +320,12 @@ public:
   /**
    * Codec can be informed by player with the following flags:
    *
-   * DVP_FLAG_NO_POSTPROC : if speed is not normal the codec can switch off
-   *                        postprocessing and de-interlacing
+   * DVD_CODEC_CTRL_NO_POSTPROC :
+   *                  if speed is not normal the codec can switch off
+   *                  postprocessing and de-interlacing
    *
-   * DVP_FLAG_DRAIN : codecs may do postprocessing and de-interlacing.
+   * DVD_CODEC_CTRL_DRAIN :
+   *                  codecs may do postprocessing and de-interlacing.
    *                  If video buffers in RenderManager are about to run dry,
    *                  this is signaled to codec. Codec can wait for post-proc
    *                  to be finished instead of returning empty and getting another

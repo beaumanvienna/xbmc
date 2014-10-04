@@ -25,6 +25,7 @@
 #include "utils/log.h"
 #include "guilib/gui3d.h"
 #include "linux/DllBCM.h"
+#include "linux/RBP.h"
 #include "utils/StringUtils.h"
 #include "settings/Settings.h"
 
@@ -370,7 +371,7 @@ static float get_display_aspect_ratio(SDTV_ASPECT_T aspect)
 
 static bool ClampToGUIDisplayLimits(int &width, int &height)
 {
-  float max_height = (float)CSettings::Get().GetInt("videoscreen.limitgui");
+  float max_height = (float)g_RBP.GetGUIResolutionLimit();
   float default_ar = 16.0f/9.0f;
   if (max_height < 540.0f || max_height > 1080.0f)
     max_height = 1080.0f;
@@ -489,10 +490,8 @@ bool CEGLNativeTypeRaspberryPI::ProbeResolutions(std::vector<RESOLUTION_INFO> &r
 
   if(resolutions.size() == 0)
   {
-    RESOLUTION_INFO res;
-    CLog::Log(LOGDEBUG, "EGL probe resolution %s:%x\n", m_desktopRes.strMode.c_str(), m_desktopRes.dwFlags);
-
     AddUniqueResolution(m_desktopRes, resolutions);
+    CLog::Log(LOGDEBUG, "EGL probe resolution %s:%x\n", m_desktopRes.strMode.c_str(), m_desktopRes.dwFlags);
   }
 
   if(resolutions.size() < 2)
@@ -582,13 +581,12 @@ void CEGLNativeTypeRaspberryPI::GetSupportedModes(HDMI_RES_GROUP_T group, std::v
       res.iScreenWidth  = tv->width;
       res.iScreenHeight = tv->height;
       res.fPixelRatio   = get_display_aspect_ratio((HDMI_ASPECT_T)tv->aspect_ratio) / ((float)res.iScreenWidth / (float)res.iScreenHeight);
-
-      CLog::Log(LOGDEBUG, "EGL mode %d: %s (%.2f) %s%s:%x\n", i, res.strMode.c_str(), res.fPixelRatio,
-          tv->native ? "N" : "", tv->scan_mode ? "I" : "", tv->code);
-
       res.iSubtitles    = (int)(0.965 * res.iHeight);
 
       AddUniqueResolution(res, resolutions);
+      CLog::Log(LOGDEBUG, "EGL mode %d: %s (%.2f) %s%s:%x\n", i, res.strMode.c_str(), res.fPixelRatio,
+          tv->native ? "N" : "", tv->scan_mode ? "I" : "", tv->code);
+
       if (tv->frame_rate == 24 || tv->frame_rate == 30 || tv->frame_rate == 60)
       {
         RESOLUTION_INFO res2 = res;
@@ -603,11 +601,10 @@ void CEGLNativeTypeRaspberryPI::GetSupportedModes(HDMI_RES_GROUP_T group, std::v
         res2.dwFlags |= D3DPRESENTFLAG_MODE3DSBS;
         res2.fPixelRatio    = get_display_aspect_ratio((HDMI_ASPECT_T)tv->aspect_ratio) / ((float)res2.iScreenWidth / (float)res2.iScreenHeight);
         res2.fPixelRatio   *= 2.0f;
-        CLog::Log(LOGDEBUG, "EGL mode %d: %s (%.2f)\n", i, res2.strMode.c_str(), res2.fPixelRatio);
-
         res2.iSubtitles    = (int)(0.965 * res2.iHeight);
 
         AddUniqueResolution(res2, resolutions);
+        CLog::Log(LOGDEBUG, "EGL mode %d: %s (%.2f)\n", i, res2.strMode.c_str(), res2.fPixelRatio);
         if (tv->frame_rate == 24 || tv->frame_rate == 30 || tv->frame_rate == 60)
         {
           res2.fRefreshRate  = (float)tv->frame_rate * (1000.0f/1001.0f);
@@ -620,11 +617,10 @@ void CEGLNativeTypeRaspberryPI::GetSupportedModes(HDMI_RES_GROUP_T group, std::v
         res2.dwFlags |= D3DPRESENTFLAG_MODE3DTB;
         res2.fPixelRatio    = get_display_aspect_ratio((HDMI_ASPECT_T)tv->aspect_ratio) / ((float)res2.iScreenWidth / (float)res2.iScreenHeight);
         res2.fPixelRatio   *= 0.5f;
-        CLog::Log(LOGDEBUG, "EGL mode %d: %s (%.2f)\n", i, res2.strMode.c_str(), res2.fPixelRatio);
-
         res2.iSubtitles    = (int)(0.965 * res2.iHeight);
 
         AddUniqueResolution(res2, resolutions);
+        CLog::Log(LOGDEBUG, "EGL mode %d: %s (%.2f)\n", i, res2.strMode.c_str(), res2.fPixelRatio);
         if (tv->frame_rate == 24 || tv->frame_rate == 30 || tv->frame_rate == 60)
         {
           res2.fRefreshRate  = (float)tv->frame_rate * (1000.0f/1001.0f);

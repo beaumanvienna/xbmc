@@ -22,6 +22,7 @@
 #include "utils/RegExp.h"
 #include "filesystem/File.h"
 #include "filesystem/SpecialProtocol.h"
+#include "utils/StdString.h"
 
 #include "test/TestUtils.h"
 
@@ -33,11 +34,7 @@ protected:
   Testlog(){}
   ~Testlog()
   {
-    /* Reset globals used by CLog after each test. */
-    g_log_globalsRef->m_file = NULL;
-    g_log_globalsRef->m_repeatCount = 0;
-    g_log_globalsRef->m_repeatLogLevel = -1;
-    g_log_globalsRef->m_logLevel = LOG_LEVEL_DEBUG;
+    CLog::Close();
   }
 };
 
@@ -50,7 +47,7 @@ TEST_F(Testlog, Log)
   CRegExp regex;
 
   logfile = CSpecialProtocol::TranslatePath("special://temp/") + "xbmc.log";
-  EXPECT_TRUE(CLog::Init(CSpecialProtocol::TranslatePath("special://temp/")));
+  EXPECT_TRUE(CLog::Init(CSpecialProtocol::TranslatePath("special://temp/").c_str()));
   EXPECT_TRUE(XFILE::CFile::Exists(logfile));
 
   CLog::Log(LOGDEBUG, "debug log message");
@@ -104,7 +101,7 @@ TEST_F(Testlog, MemDump)
   char refdata[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
   logfile = CSpecialProtocol::TranslatePath("special://temp/") + "xbmc.log";
-  EXPECT_TRUE(CLog::Init(CSpecialProtocol::TranslatePath("special://temp/")));
+  EXPECT_TRUE(CLog::Init(CSpecialProtocol::TranslatePath("special://temp/").c_str()));
   EXPECT_TRUE(XFILE::CFile::Exists(logfile));
 
   CLog::MemDump(refdata, sizeof(refdata));
@@ -136,7 +133,7 @@ TEST_F(Testlog, SetLogLevel)
   CStdString logfile;
 
   logfile = CSpecialProtocol::TranslatePath("special://temp/") + "xbmc.log";
-  EXPECT_TRUE(CLog::Init(CSpecialProtocol::TranslatePath("special://temp/")));
+  EXPECT_TRUE(CLog::Init(CSpecialProtocol::TranslatePath("special://temp/").c_str()));
   EXPECT_TRUE(XFILE::CFile::Exists(logfile));
 
   EXPECT_EQ(LOG_LEVEL_DEBUG, CLog::GetLogLevel());

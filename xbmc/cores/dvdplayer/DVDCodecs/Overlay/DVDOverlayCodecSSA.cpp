@@ -45,7 +45,8 @@ CDVDOverlayCodecSSA::~CDVDOverlayCodecSSA()
 
 bool CDVDOverlayCodecSSA::Open(CDVDStreamInfo &hints, CDVDCodecOptions &options)
 {
-  if(hints.codec != AV_CODEC_ID_SSA)
+  if(hints.codec != AV_CODEC_ID_SSA &&
+     hints.codec != AV_CODEC_ID_ASS)
     return false;
 
   Dispose();
@@ -70,6 +71,8 @@ int CDVDOverlayCodecSSA::Decode(DemuxPacket *pPacket)
     return OC_ERROR;
   
   double pts = pPacket->dts != DVD_NOPTS_VALUE ? pPacket->dts : pPacket->pts;
+  if (pts == DVD_NOPTS_VALUE)
+    pts = 0;
   uint8_t *data = pPacket->pData;
   int size = pPacket->iSize;
   double duration = pPacket->duration;
@@ -81,7 +84,7 @@ int CDVDOverlayCodecSSA::Decode(DemuxPacket *pPacket)
     int    sh, sm, ss, sc, eh, em, es, ec;
     double beg, end;
     size_t pos;
-    CStdString      line, line2;
+    std::string      line, line2;
     std::vector<std::string> lines;
     StringUtils::Tokenize((const char*)data, lines, "\r\n");
     for(size_t i=0; i<lines.size(); i++)
@@ -100,7 +103,7 @@ int CDVDOverlayCodecSSA::Decode(DemuxPacket *pPacket)
       pos = line.find_first_of(",", 0);
       pos = line.find_first_of(",", pos+1);
       pos = line.find_first_of(",", pos+1);
-      if(pos == CStdString::npos)
+      if(pos == std::string::npos)
         continue;
 
       line2 = StringUtils::Format("%d,%s,%s", m_order++, layer.get(), line.substr(pos+1).c_str());
@@ -116,6 +119,14 @@ int CDVDOverlayCodecSSA::Decode(DemuxPacket *pPacket)
   }
   else
     m_libass->DecodeDemuxPkt((char*)data, size, pts, duration);
+
+  if (m_pOverlay && m_pOverlay->iPTSStartTime == pts)
+  {
+    if (m_pOverlay->iPTSStopTime < pts + duration)
+      m_pOverlay->iPTSStopTime = pts + duration;
+    m_output = true;
+    return OC_OVERLAY;
+  }
 
   if(m_pOverlay)
   {

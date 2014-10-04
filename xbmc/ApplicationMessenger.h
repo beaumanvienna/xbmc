@@ -20,11 +20,9 @@
  *
  */
 
-#include "threads/CriticalSection.h"
 #include "utils/StdString.h"
 #include "guilib/WindowIDs.h"
 #include "threads/Thread.h"
-#include "threads/Event.h"
 #include <boost/shared_ptr.hpp>
 
 #include <queue>
@@ -119,8 +117,8 @@ namespace MUSIC_INFO
 typedef struct
 {
   unsigned int dwMessage;
-  unsigned int dwParam1;
-  unsigned int dwParam2;
+  int param1;
+  int param2;
   CStdString strParam;
   std::vector<std::string> params;
   boost::shared_ptr<CEvent> waitEvent;
@@ -227,7 +225,7 @@ public:
   int SetResponse(CStdString response);
   void ExecBuiltIn(const CStdString &command, bool wait = false);
 
-  void NetworkMessage(unsigned int dwMessage, unsigned int dwParam = 0);
+  void NetworkMessage(int dwMessage, int dwParam = 0);
 
   void DoModal(CGUIDialog *pDialog, int iWindowID, const CStdString &param = "");
   void Show(CGUIDialog *pDialog);

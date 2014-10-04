@@ -52,6 +52,28 @@
 #include "URL.h"
 #include "cores/FFmpeg.h"
 
+extern "C" {
+#include "libavutil/opt.h"
+}
+
+struct StereoModeConversionMap
+{
+  const char*          name;
+  const char*          mode;
+};
+
+// we internally use the matroska string representation of stereoscopic modes.
+// This struct is a conversion map to convert stereoscopic mode values
+// from asf/wmv to the internally used matroska ones
+static const struct StereoModeConversionMap WmvToInternalStereoModeMap[] =
+{
+  { "SideBySideRF",             "right_left" },
+  { "SideBySideLF",             "left_right" },
+  { "OverUnderRT",              "bottom_top" },
+  { "OverUnderLT",              "top_bottom" },
+  {}
+};
+
 #define FF_MAX_EXTRADATA_SIZE ((1 << 28) - FF_INPUT_BUFFER_PADDING_SIZE)
 
 void CDemuxStreamAudioFFmpeg::GetStreamInfo(std::string& strInfo)
@@ -177,7 +199,7 @@ bool CDVDDemuxFFmpeg::Aborted()
   return false;
 }
 
-bool CDVDDemuxFFmpeg::Open(CDVDInputStream* pInput, bool streaminfo)
+bool CDVDDemuxFFmpeg::Open(CDVDInputStream* pInput, bool streaminfo, bool fileinfo)
 {
   AVInputFormat* iformat = NULL;
   std::string strFile;
@@ -219,12 +241,11 @@ bool CDVDDemuxFFmpeg::Open(CDVDInputStream* pInput, bool streaminfo)
     // special stream type that makes avformat handle file opening
     // allows internal ffmpeg protocols to be used
     CURL url = m_pInput->GetURL();
-    CStdString protocol = url.GetProtocol();
 
     AVDictionary *options = GetFFMpegOptionsFromURL(url);
 
     int result=-1;
-    if (protocol.Equals("mms"))
+    if (url.IsProtocol("mms"))
     {
       // try mmsh, then mmst
       url.SetProtocol("mmsh");
@@ -385,12 +406,14 @@ bool CDVDDemuxFFmpeg::Open(CDVDInputStream* pInput, bool streaminfo)
   
   // analyse very short to speed up mjpeg playback start
   if (iformat && (strcmp(iformat->name, "mjpeg") == 0) && m_ioContext->seekable == 0)
-    m_pFormatContext->max_analyze_duration = 500000;
+    av_opt_set_int(m_pFormatContext, "analyzeduration", 500000, 0);
 
-  if (iformat && (strcmp(iformat->name, "mpegts") == 0))
+  bool isMpegts = false;
+  if (iformat && (strcmp(iformat->name, "mpegts") == 0) && !fileinfo)
   {
-    m_pFormatContext->max_analyze_duration = 500000;
+    av_opt_set_int(m_pFormatContext, "analyzeduration", 500000, 0);
     m_checkvideo = true;
+    isMpegts = true;
   }
 
   // we need to know if this is matroska or avi later
@@ -401,7 +424,7 @@ bool CDVDDemuxFFmpeg::Open(CDVDInputStream* pInput, bool streaminfo)
   {
     /* to speed up dvd switches, only analyse very short */
     if(m_pInput->IsStreamType(DVDSTREAM_TYPE_DVD))
-      m_pFormatContext->max_analyze_duration = 500000;
+      av_opt_set_int(m_pFormatContext, "analyzeduration", 500000, 0);
 
     CLog::Log(LOGDEBUG, "%s - avformat_find_stream_info starting", __FUNCTION__);
     int iErr = avformat_find_stream_info(m_pFormatContext, NULL);
@@ -445,7 +468,13 @@ bool CDVDDemuxFFmpeg::Open(CDVDInputStream* pInput, bool streaminfo)
 
   UpdateCurrentPTS();
 
-  CreateStreams();
+  // in case of mpegts and we have not seen pat/pmt, defer creation of streams
+  if (!isMpegts || m_pFormatContext->nb_programs > 0)
+    CreateStreams();
+
+  // allow IsProgramChange to return true
+  if (isMpegts && GetNrOfStreams() == 0)
+    m_program = 0;
 
   m_bPtsWrapChecked = false;
   m_bPtsWrap = false;
@@ -545,31 +574,30 @@ void CDVDDemuxFFmpeg::SetSpeed(int iSpeed)
 
 AVDictionary *CDVDDemuxFFmpeg::GetFFMpegOptionsFromURL(const CURL &url)
 {
-  CStdString protocol = url.GetProtocol();
 
   AVDictionary *options = NULL;
 
-  if (protocol.Equals("http") || protocol.Equals("https"))
+  if (url.IsProtocol("http") || url.IsProtocol("https"))
   {
-    std::map<CStdString, CStdString> protocolOptions;
+    std::map<std::string, std::string> protocolOptions;
     url.GetProtocolOptions(protocolOptions);
     std::string headers;
     bool hasUserAgent = false;
-    for(std::map<CStdString, CStdString>::const_iterator it = protocolOptions.begin(); it != protocolOptions.end(); ++it)
+    for(std::map<std::string, std::string>::const_iterator it = protocolOptions.begin(); it != protocolOptions.end(); ++it)
     {
-      const CStdString &name = it->first;
-      const CStdString &value = it->second;
+      std::string name = it->first; StringUtils::ToLower(name);
+      const std::string &value = it->second;
 
-      if (name.Equals("seekable"))
+      if (name == "seekable")
         av_dict_set(&options, "seekable", value.c_str(), 0);
-      else if (name.Equals("User-Agent"))
+      else if (name == "user-agent")
       {
         av_dict_set(&options, "user-agent", value.c_str(), 0);
         hasUserAgent = true;
       }
-      else if (!name.Equals("auth") && !name.Equals("Encoding"))
+      else if (name != "auth" && name != "encoding")
         // all other protocol options can be added as http header.
-        headers.append(name).append(": ").append(value).append("\r\n");
+        headers.append(it->first).append(": ").append(value).append("\r\n");
     }
     if (!hasUserAgent)
       // set default xbmc user-agent.
@@ -1311,9 +1339,13 @@ CDemuxStream* CDVDDemuxFFmpeg::AddStream(int iId)
         if (rtag) 
           st->iOrientation = atoi(rtag->value);
 
-        rtag = av_dict_get(pStream->metadata, "stereo_mode", NULL, 0);
-        if (rtag && rtag->value)
-          st->stereo_mode = rtag->value;
+        // detect stereoscopic mode
+        std::string stereoMode = GetStereoModeFromMetadata(pStream->metadata);
+          // check for metadata in file if detection in stream failed
+        if (stereoMode.empty())
+          stereoMode = GetStereoModeFromMetadata(m_pFormatContext->metadata);
+        if (!stereoMode.empty())
+          st->stereo_mode = stereoMode;
 
         
         if ( m_pInput->IsStreamType(DVDSTREAM_TYPE_DVD) )
@@ -1578,7 +1610,7 @@ bool CDVDDemuxFFmpeg::SeekChapter(int chapter, double* startpts)
   return SeekTime(DVD_TIME_TO_MSEC(dts), true, startpts);
 }
 
-void CDVDDemuxFFmpeg::GetStreamCodecName(int iStreamId, CStdString &strName)
+void CDVDDemuxFFmpeg::GetStreamCodecName(int iStreamId, std::string &strName)
 {
   CDemuxStream *stream = GetStream(iStreamId);
   if (stream)
@@ -1633,6 +1665,9 @@ bool CDVDDemuxFFmpeg::IsProgramChange()
   if (m_program == UINT_MAX)
     return false;
 
+  if (m_program == 0 && !m_pFormatContext->nb_programs)
+    return false;
+
   if(m_pFormatContext->programs[m_program]->nb_stream_indexes != m_streams.size())
     return true;
 
@@ -1649,6 +1684,43 @@ bool CDVDDemuxFFmpeg::IsProgramChange()
       return true;
   }
   return false;
+}
+
+std::string CDVDDemuxFFmpeg::GetStereoModeFromMetadata(AVDictionary *pMetadata)
+{
+  std::string stereoMode;
+  AVDictionaryEntry *tag = NULL;
+
+  // matroska
+  tag = av_dict_get(pMetadata, "stereo_mode", NULL, 0);
+  if (tag && tag->value)
+    stereoMode = tag->value;
+
+  // asf / wmv
+  if (stereoMode.empty())
+  {
+    tag = av_dict_get(pMetadata, "Stereoscopic", NULL, 0);
+    if (tag && tag->value)
+    {
+      tag = av_dict_get(pMetadata, "StereoscopicLayout", NULL, 0);
+      if (tag && tag->value)
+        stereoMode = ConvertCodecToInternalStereoMode(tag->value, WmvToInternalStereoModeMap);
+    }
+  }
+
+  return stereoMode;
+}
+
+std::string CDVDDemuxFFmpeg::ConvertCodecToInternalStereoMode(const std::string &mode, const StereoModeConversionMap *conversionMap)
+{
+  size_t i = 0;
+  while (conversionMap[i].name)
+  {
+    if (mode == conversionMap[i].name)
+      return conversionMap[i].mode;
+    i++;
+  }
+  return "";
 }
 
 void CDVDDemuxFFmpeg::ParsePacket(AVPacket *pkt)
@@ -1706,7 +1778,8 @@ void CDVDDemuxFFmpeg::ParsePacket(AVPacket *pkt)
     // We don't need to actually decode here
     // we just want to transport SPS data into codec context
     st->codec->skip_idct = AVDISCARD_ALL;
-    st->codec->skip_frame = AVDISCARD_ALL;
+    // extradata is not decoded if skip_frame >= AVDISCARD_NONREF
+//    st->codec->skip_frame = AVDISCARD_ALL;
     st->codec->skip_loop_filter = AVDISCARD_ALL;
 
     // We are looking for an IDR frame
@@ -1729,6 +1802,9 @@ bool CDVDDemuxFFmpeg::IsVideoReady()
 
   if(!m_checkvideo)
     return true;
+
+  if (m_program == 0 && !m_pFormatContext->nb_programs)
+    return false;
 
   if(m_program != UINT_MAX)
   {

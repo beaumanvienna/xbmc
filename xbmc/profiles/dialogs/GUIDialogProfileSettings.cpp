@@ -26,7 +26,6 @@
 #include "dialogs/GUIDialogYesNo.h"
 #include "filesystem/Directory.h"
 #include "filesystem/File.h"
-#include "guilib/GUIImage.h"
 #include "guilib/GUIKeyboardFactory.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
@@ -200,8 +199,9 @@ void CGUIDialogProfileSettings::OnWindowLoaded()
 {
   CGUIDialogSettingsManualBase::OnWindowLoaded();
 
-  CGUIImage *image = (CGUIImage*)GetControl(CONTROL_PROFILE_IMAGE);
-  m_defaultImage = image ? image->GetFileName() : "";
+  CGUIMessage msg(GUI_MSG_GET_FILENAME, GetID(), CONTROL_PROFILE_IMAGE);
+  OnMessage(msg);
+  m_defaultImage = msg.GetLabel();
 }
 
 void CGUIDialogProfileSettings::OnSettingChanged(const CSetting *setting)
@@ -259,13 +259,7 @@ void CGUIDialogProfileSettings::OnSettingAction(const CSetting *setting)
       m_needsSaving = true;
       m_thumb = thumb.Equals("thumb://None") ? "" : thumb;
 
-      CGUIImage *image = (CGUIImage*)GetControl(CONTROL_PROFILE_IMAGE);
-      if (image == NULL)
-        return;
-
-      image->SetFileName("");
-      image->SetInvalid();
-      image->SetFileName(!m_thumb.empty() ? m_thumb : m_defaultImage);
+      SET_CONTROL_FILENAME(CONTROL_PROFILE_IMAGE, !m_thumb.empty() ? m_thumb : m_defaultImage);
     }
   }
   else if (settingId == SETTING_PROFILE_DIRECTORY)
@@ -318,9 +312,7 @@ void CGUIDialogProfileSettings::SetupView()
   updateProfileDirectory();
 
   // set the image
-  CGUIImage *image = (CGUIImage*)GetControl(CONTROL_PROFILE_IMAGE);
-  if (image != NULL)
-    image->SetFileName(!m_thumb.empty() ? m_thumb : m_defaultImage);
+  SET_CONTROL_FILENAME(CONTROL_PROFILE_IMAGE, !m_thumb.empty() ? m_thumb : m_defaultImage);
 }
 
 void CGUIDialogProfileSettings::InitializeSettings()
@@ -361,11 +353,11 @@ void CGUIDialogProfileSettings::InitializeSettings()
     }
 
     StaticIntegerSettingOptions entries;
-    entries.push_back(std::make_pair(0, 20062));
-    entries.push_back(std::make_pair(1, 20063));
-    entries.push_back(std::make_pair(2, 20061));
+    entries.push_back(std::make_pair(20062, 0));
+    entries.push_back(std::make_pair(20063, 1));
+    entries.push_back(std::make_pair(20061, 2));
     if (CProfilesManager::Get().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE)
-      entries.push_back(std::make_pair(3, 20107));
+      entries.push_back(std::make_pair(20107, 3));
 
     AddSpinner(groupMedia, SETTING_PROFILE_MEDIA, 20060, 0, m_dbMode, entries);
     AddSpinner(groupMedia, SETTING_PROFILE_MEDIA_SOURCES, 20094, 0, m_sourcesMode, entries);

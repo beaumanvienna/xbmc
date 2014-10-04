@@ -36,10 +36,10 @@
 #include "Video/DVDVideoCodecFFmpeg.h"
 #include "Video/DVDVideoCodecOpenMax.h"
 #include "Video/DVDVideoCodecLibMpeg2.h"
-#include "Video/DVDVideoCodecStageFright.h"
-#if defined(HAVE_LIBCRYSTALHD)
-#include "Video/DVDVideoCodecCrystalHD.h"
+#if defined(HAS_IMXVPU)
+#include "Video/DVDVideoCodecIMX.h"
 #endif
+#include "Video/DVDVideoCodecStageFright.h"
 #if defined(HAS_LIBAMCODEC)
 #include "utils/AMLUtils.h"
 #include "Video/DVDVideoCodecAmlogic.h"
@@ -140,7 +140,7 @@ CDVDVideoCodec* CDVDFactoryCodec::CreateVideoCodec(CDVDStreamInfo &hint, unsigne
 
   //when support for a hardware decoder is not compiled in
   //only print it if it's actually available on the platform
-  CStdString hwSupport;
+  std::string hwSupport;
 #if defined(TARGET_DARWIN_OSX)
   hwSupport += "VDADecoder:yes ";
 #endif
@@ -148,11 +148,6 @@ CDVDVideoCodec* CDVDFactoryCodec::CreateVideoCodec(CDVDStreamInfo &hint, unsigne
   hwSupport += "VideoToolBoxDecoder:yes ";
 #elif defined(TARGET_DARWIN)
   hwSupport += "VideoToolBoxDecoder:no ";
-#endif
-#ifdef HAVE_LIBCRYSTALHD
-  hwSupport += "CrystalHD:yes ";
-#else
-  hwSupport += "CrystalHD:no ";
 #endif
 #if defined(HAS_LIBAMCODEC)
   hwSupport += "AMCodec:yes ";
@@ -164,7 +159,7 @@ CDVDVideoCodec* CDVDFactoryCodec::CreateVideoCodec(CDVDStreamInfo &hint, unsigne
 #else
   hwSupport += "MediaCodec:no ";
 #endif
-#if defined(HAVE_LIBOPENMAX) && defined(TARGET_POSIX)
+#if defined(HAVE_LIBOPENMAX)
   hwSupport += "OpenMax:yes ";
 #elif defined(TARGET_POSIX)
   hwSupport += "OpenMax:no ";
@@ -189,7 +184,11 @@ CDVDVideoCodec* CDVDFactoryCodec::CreateVideoCodec(CDVDStreamInfo &hint, unsigne
 #elif defined(TARGET_POSIX) && !defined(TARGET_DARWIN)
   hwSupport += "VAAPI:no ";
 #endif
-
+#if defined(HAS_IMXVPU)
+  hwSupport += "iMXVPU:yes ";
+#else
+  hwSupport += "iMXVPU:no ";
+#endif
   CLog::Log(LOGDEBUG, "CDVDFactoryCodec: compiled in hardware support: %s", hwSupport.c_str());
 
   if (hint.stills && (hint.codec == AV_CODEC_ID_MPEG2VIDEO || hint.codec == AV_CODEC_ID_MPEG1VIDEO))
@@ -203,6 +202,13 @@ CDVDVideoCodec* CDVDFactoryCodec::CreateVideoCodec(CDVDStreamInfo &hint, unsigne
   if (!hint.software && CSettings::Get().GetBool("videoplayer.useamcodec"))
   {
      if ( (pCodec = OpenCodec(new CDVDVideoCodecAmlogic(), hint, options)) ) return pCodec;
+  }
+#endif
+
+#if defined(HAS_IMXVPU)
+  if (!hint.software)
+  {
+    if ( (pCodec = OpenCodec(new CDVDVideoCodecIMX(), hint, options)) ) return pCodec;
   }
 #endif
 
@@ -227,30 +233,6 @@ CDVDVideoCodec* CDVDFactoryCodec::CreateVideoCodec(CDVDStreamInfo &hint, unsigne
           if (hint.codec == AV_CODEC_ID_H264 && hint.ptsinvalid)
             break;
           if ( (pCodec = OpenCodec(new CDVDVideoCodecVideoToolBox(), hint, options)) ) return pCodec;
-        break;
-        default:
-        break;
-      }
-    }
-  }
-#endif
-
-#if defined(HAVE_LIBCRYSTALHD)
-  if (!hint.software && CSettings::Get().GetBool("videoplayer.usechd"))
-  {
-    if (CCrystalHD::GetInstance()->DevicePresent())
-    {
-      switch(hint.codec)
-      {
-        case AV_CODEC_ID_VC1:
-        case AV_CODEC_ID_WMV3:
-        case AV_CODEC_ID_H264:
-        case AV_CODEC_ID_MPEG2VIDEO:
-          if (hint.codec == AV_CODEC_ID_H264 && hint.ptsinvalid)
-            break;
-          if (hint.codec == AV_CODEC_ID_MPEG2VIDEO && hint.width <= 720)
-            break;
-          if ( (pCodec = OpenCodec(new CDVDVideoCodecCrystalHD(), hint, options)) ) return pCodec;
         break;
         default:
         break;
@@ -309,7 +291,7 @@ CDVDVideoCodec* CDVDFactoryCodec::CreateVideoCodec(CDVDStreamInfo &hint, unsigne
   }
 #endif
 
-  CStdString value = StringUtils::Format("%d", surfaces);
+  std::string value = StringUtils::Format("%d", surfaces);
   options.m_keys.push_back(CDVDCodecOption("surfaces", value));
   if( (pCodec = OpenCodec(new CDVDVideoCodecFFmpeg(), hint, options)) ) return pCodec;
 
@@ -345,6 +327,7 @@ CDVDOverlayCodec* CDVDFactoryCodec::CreateOverlayCodec( CDVDStreamInfo &hint )
       break;
 
     case AV_CODEC_ID_SSA:
+    case AV_CODEC_ID_ASS:
       pCodec = OpenCodec(new CDVDOverlayCodecSSA(), hint, options);
       if( pCodec ) return pCodec;
 

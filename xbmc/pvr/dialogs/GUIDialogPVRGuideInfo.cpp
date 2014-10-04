@@ -24,17 +24,19 @@
 #include "dialogs/GUIDialogOK.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "guilib/LocalizeStrings.h"
+#include "utils/StringUtils.h"
 
 #include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "epg/EpgInfoTag.h"
 #include "pvr/timers/PVRTimers.h"
 #include "pvr/timers/PVRTimerInfoTag.h"
+#include "pvr/windows/GUIWindowPVRBase.h"
 
-using namespace std;
 using namespace PVR;
 using namespace EPG;
 
+#define CONTROL_BTN_FIND                4
 #define CONTROL_BTN_SWITCH              5
 #define CONTROL_BTN_RECORD              6
 #define CONTROL_BTN_OK                  7
@@ -169,15 +171,49 @@ bool CGUIDialogPVRGuideInfo::OnClickButtonSwitch(CGUIMessage &message)
   {
     Close();
     PlayBackRet ret = PLAYBACK_CANCELED;
-    if (!m_progItem->GetEPGInfoTag()->HasPVRChannel() ||
-        (ret = g_application.PlayFile(CFileItem(*m_progItem->GetEPGInfoTag()->ChannelTag()))) == PLAYBACK_FAIL)
+    CEpgInfoTag *epgTag = m_progItem->GetEPGInfoTag();
+
+    if (epgTag)
     {
-      CStdString msg = StringUtils::Format(g_localizeStrings.Get(19035).c_str(), g_localizeStrings.Get(19029).c_str()); // Channel could not be played. Check the log for details.
+      if (epgTag->HasRecording())
+        ret = g_application.PlayFile(CFileItem(*epgTag->Recording()));
+      else if (epgTag->HasPVRChannel())
+        ret = g_application.PlayFile(CFileItem(*epgTag->ChannelTag()));
+    }
+    else
+      ret = PLAYBACK_FAIL;
+
+    if (ret == PLAYBACK_FAIL)
+    {
+      std::string msg = StringUtils::Format(g_localizeStrings.Get(19035).c_str(), g_localizeStrings.Get(19029).c_str()); // Channel could not be played. Check the log for details.
       CGUIDialogOK::ShowAndGetInput(19033, 0, msg, 0);
     }
     else if (ret == PLAYBACK_OK)
     {
       bReturn = true;
+    }
+  }
+
+  return bReturn;
+}
+
+bool CGUIDialogPVRGuideInfo::OnClickButtonFind(CGUIMessage &message)
+{
+  bool bReturn = false;
+
+  if (message.GetSenderId() == CONTROL_BTN_FIND)
+  {
+    const CEpgInfoTag *tag = m_progItem->GetEPGInfoTag();
+    if (tag && tag->HasPVRChannel())
+    {
+      int windowSearchId = tag->ChannelTag()->IsRadio() ? WINDOW_RADIO_SEARCH : WINDOW_TV_SEARCH;
+      CGUIWindowPVRBase *windowSearch = (CGUIWindowPVRBase*) g_windowManager.GetWindow(windowSearchId);
+      if (windowSearch)
+      {
+        Close();
+        g_windowManager.ActivateWindow(windowSearchId);
+        bReturn = windowSearch->OnContextButton(*m_progItem.get(), CONTEXT_BUTTON_FIND);
+      }
     }
   }
 
@@ -191,7 +227,8 @@ bool CGUIDialogPVRGuideInfo::OnMessage(CGUIMessage& message)
   case GUI_MSG_CLICKED:
     return OnClickButtonOK(message) ||
            OnClickButtonRecord(message) ||
-           OnClickButtonSwitch(message);
+           OnClickButtonSwitch(message) ||
+           OnClickButtonFind(message);
   }
 
   return CGUIDialog::OnMessage(message);

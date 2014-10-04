@@ -21,6 +21,7 @@
 #include "RBP.h"
 #if defined(TARGET_RASPBERRY_PI)
 
+#include "settings/Settings.h"
 #include "utils/log.h"
 
 #include "cores/omxplayer/OMXImage.h"
@@ -72,6 +73,13 @@ bool CRBP::Initialize()
   if (vc_gencmd(response, sizeof response, "codec_enabled WVC1") == 0)
     m_codec_wvc1_enabled = strcmp("WVC1=enabled", response) == 0;
 
+  if (m_gpu_mem < 128)
+    setenv("V3D_DOUBLE_BUFFER", "1", 1);
+
+  m_gui_resolution_limit = CSettings::Get().GetInt("videoscreen.limitgui");
+  if (!m_gui_resolution_limit)
+    m_gui_resolution_limit = m_gpu_mem < 128 ? 720:1080;
+
   g_OMXImage.Initialize();
   m_omx_image_init = true;
   return true;
@@ -79,11 +87,17 @@ bool CRBP::Initialize()
 
 void CRBP::LogFirmwareVerison()
 {
-  char  response[160];
+  char  response[1024];
   m_DllBcmHost->vc_gencmd(response, sizeof response, "version");
   response[sizeof(response) - 1] = '\0';
   CLog::Log(LOGNOTICE, "Raspberry PI firmware version: %s", response);
   CLog::Log(LOGNOTICE, "ARM mem: %dMB GPU mem: %dMB MPG2:%d WVC1:%d", m_arm_mem, m_gpu_mem, m_codec_mpg2_enabled, m_codec_wvc1_enabled);
+  m_DllBcmHost->vc_gencmd(response, sizeof response, "get_config int");
+  response[sizeof(response) - 1] = '\0';
+  CLog::Log(LOGNOTICE, "Config:\n%s", response);
+  m_DllBcmHost->vc_gencmd(response, sizeof response, "get_config str");
+  response[sizeof(response) - 1] = '\0';
+  CLog::Log(LOGNOTICE, "Config:\n%s", response);
 }
 
 void CRBP::GetDisplaySize(int &width, int &height)

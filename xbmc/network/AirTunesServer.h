@@ -35,7 +35,6 @@
 #include "threads/Thread.h"
 #include "threads/CriticalSection.h"
 #include "utils/HttpParser.h"
-#include "utils/StdString.h"
 #include "filesystem/PipeFile.h"
 #include "interfaces/IAnnouncer.h"
 
@@ -45,7 +44,7 @@ class CAirTunesServer : public ANNOUNCEMENT::IAnnouncer
 public:
   virtual void Announce(ANNOUNCEMENT::AnnouncementFlag flag, const char *sender, const char *message, const CVariant &data);
 
-  static bool StartServer(int port, bool nonlocal, bool usePassword, const CStdString &password="");
+  static bool StartServer(int port, bool nonlocal, bool usePassword, const std::string &password="");
   static void StopServer(bool bWait);
   static bool IsRunning();
   static void SetMetadataFromBuffer(const char *buffer, unsigned int size);
@@ -54,17 +53,18 @@ public:
 private:
   CAirTunesServer(int port, bool nonlocal);
   ~CAirTunesServer();
-  bool Initialize(const CStdString &password);
+  bool Initialize(const std::string &password);
   void Deinitialize();
   static void RefreshCoverArt();
   static void RefreshMetadata();
+  static void ResetMetadata();
 
   int m_port;
   static DllLibShairplay *m_pLibShairplay;//the lib
   raop_t *m_pRaop;
   XFILE::CPipeFile *m_pPipe;
   static CAirTunesServer *ServerInstance;
-  static CStdString m_macAddress;
+  static std::string m_macAddress;
   static CCriticalSection m_metadataLock;
   static std::string m_metadata[3];//0 - album, 1 - title, 2 - artist
   static bool m_streamStarted;
@@ -77,7 +77,6 @@ private:
 	    static void  audio_set_metadata(void *cls, void *session, const void *buffer, int buflen);
 	    static void  audio_set_coverart(void *cls, void *session, const void *buffer, int buflen);
       static void  audio_process(void *cls, void *session, const void *buffer, int buflen);
-      static void  audio_flush(void *cls, void *session);
       static void  audio_destroy(void *cls, void *session);
     };
 };

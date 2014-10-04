@@ -37,7 +37,6 @@ namespace PVR
   class CPVRChannel;
 }
 
-class IAudioCallback;
 class CAction;
 class CPlayerOptions;
 class CStreamDetails;
@@ -80,14 +79,14 @@ public:
   void SetPlaySpeed(int iSpeed, bool bApplicationMuted);
 
   // proxy calls
-  int   AddSubtitle(const CStdString& strSubPath);
+  int   AddSubtitle(const std::string& strSubPath);
   bool  CanPause();
   bool  CanRecord();
   bool  CanSeek();
   bool  ControlsVolume() const;
   void  DoAudioWork();
   void  GetAudioCapabilities(std::vector<int> &audioCaps);
-  void  GetAudioInfo( CStdString& strAudioInfo);
+  void  GetAudioInfo(std::string& strAudioInfo);
   int   GetAudioStream();
   int   GetAudioStreamCount();
   void  GetAudioStreamInfo(int index, SPlayerAudioStreamInfo &info);
@@ -95,13 +94,13 @@ public:
   float GetCachePercentage() const;
   int   GetChapterCount();
   int   GetChapter();  
-  void  GetChapterName(CStdString& strChapterName);
+  void  GetChapterName(std::string& strChapterName);
   void  GetDeinterlaceMethods(std::vector<int> &deinterlaceMethods);
   void  GetDeinterlaceModes(std::vector<int> &deinterlaceModes);
-  void  GetGeneralInfo( CStdString& strVideoInfo);
+  void  GetGeneralInfo(std::string& strVideoInfo);
   float GetPercentage() const;
-  CStdString GetPlayerState();
-  CStdString GetPlayingTitle();
+  std::string GetPlayerState();
+  std::string GetPlayingTitle();
   void  GetRenderFeatures(std::vector<int> &renderFeatures);
   void  GetScalingMethods(std::vector<int> &scalingMethods);
   bool  GetStreamDetails(CStreamDetails &details);
@@ -113,7 +112,7 @@ public:
   TextCacheStruct_t* GetTeletextCache();
   int64_t GetTime() const;
   int64_t GetTotalTime() const;
-  void  GetVideoInfo( CStdString& strVideoInfo);
+  void  GetVideoInfo(std::string& strVideoInfo);
   void  GetVideoStreamInfo(SPlayerVideoStreamInfo &info);
   bool  HasAudio() const;
   bool  HasMenu() const;
@@ -133,7 +132,6 @@ public:
   void  Pause();
   bool  QueueNextFile(const CFileItem &file);
   bool  Record(bool bOnOff);
-  void  RegisterAudioCallback(IAudioCallback* pCallback);
   void  Seek(bool bPlus = true, bool bLargeStep = false, bool bChapterOverride = false);
   int   SeekChapter(int iChapter);
   void  SeekPercentage(float fPercent = 0);
@@ -143,12 +141,11 @@ public:
   void  SetAVDelay(float fValue = 0.0f);
   void  SetDynamicRangeCompression(long drc);
   void  SetMute(bool bOnOff);
-  bool  SetPlayerState(CStdString state);
+  bool  SetPlayerState(const std::string& state);
   void  SetSubtitle(int iStream);
   void  SetSubTitleDelay(float fValue = 0.0f);
   void  SetSubtitleVisible(bool bVisible);
   void  SetVolume(float volume);
   bool  SwitchChannel(const PVR::CPVRChannel &channel);
   void  ToFFRW(int iSpeed = 0);
-  void  UnRegisterAudioCallback();
 };

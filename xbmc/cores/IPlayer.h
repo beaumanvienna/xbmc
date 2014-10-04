@@ -23,8 +23,8 @@
 #include "system.h" // until we get sane int types used here
 #include "IAudioCallback.h"
 #include "IPlayerCallback.h"
-#include "utils/StdString.h"
 #include "guilib/Geometry.h"
+#include <string>
 
 struct TextCacheStruct_t;
 class TiXmlElement;
@@ -50,7 +50,7 @@ public:
   double  starttime; /* start time in seconds */
   double  startpercent; /* start time in percent */  
   bool    identify;  /* identify mode, used for checking format and length of a file */
-  CStdString state;  /* potential playerstate to restore to */
+  std::string state;  /* potential playerstate to restore to */
   bool    fullscreen; /* player is allowed to switch to fullscreen */
   bool    video_only; /* player is not allowed to play audio streams, video streams only */
 };
@@ -128,8 +128,6 @@ public:
   IPlayer(IPlayerCallback& callback): m_callback(callback){};
   virtual ~IPlayer(){};
   virtual bool Initialize(TiXmlElement* pConfig) { return true; };
-  virtual void RegisterAudioCallback(IAudioCallback* pCallback) {};
-  virtual void UnRegisterAudioCallback() {};
   virtual bool OpenFile(const CFileItem& file, const CPlayerOptions& options){ return false;}
   virtual bool QueueNextFile(const CFileItem &file) { return false; }
   virtual void OnNothingToQueueNotify() {}
@@ -151,9 +149,9 @@ public:
   virtual void SetVolume(float volume){}
   virtual bool ControlsVolume(){ return false;}
   virtual void SetDynamicRangeCompression(long drc){}
-  virtual void GetAudioInfo( CStdString& strAudioInfo) = 0;
-  virtual void GetVideoInfo( CStdString& strVideoInfo) = 0;
-  virtual void GetGeneralInfo( CStdString& strVideoInfo) = 0;
+  virtual void GetAudioInfo( std::string& strAudioInfo) = 0;
+  virtual void GetVideoInfo( std::string& strVideoInfo) = 0;
+  virtual void GetGeneralInfo( std::string& strVideoInfo) = 0;
   virtual bool CanRecord() { return false;};
   virtual bool IsRecording() { return false;};
   virtual bool Record(bool bOnOff) { return false;};
@@ -169,7 +167,7 @@ public:
   virtual void SetSubtitle(int iStream){};
   virtual bool GetSubtitleVisible(){ return false;};
   virtual void SetSubtitleVisible(bool bVisible){};
-  virtual int  AddSubtitle(const CStdString& strSubPath) {return -1;};
+  virtual int  AddSubtitle(const std::string& strSubPath) {return -1;};
 
   virtual int  GetAudioStreamCount()  { return 0; }
   virtual int  GetAudioStream()       { return -1; }
@@ -181,7 +179,7 @@ public:
 
   virtual int  GetChapterCount()                               { return 0; }
   virtual int  GetChapter()                                    { return -1; }
-  virtual void GetChapterName(CStdString& strChapterName)      { return; }
+  virtual void GetChapterName(std::string& strChapterName)     { return; }
   virtual int  SeekChapter(int iChapter)                       { return -1; }
 //  virtual bool GetChapterInfo(int chapter, SChapterInfo &info) { return false; }
 
@@ -214,29 +212,31 @@ public:
   virtual bool OnAction(const CAction &action) { return false; };
 
   //returns a state that is needed for resuming from a specific time
-  virtual CStdString GetPlayerState() { return ""; };
-  virtual bool SetPlayerState(CStdString state) { return false;};
+  virtual std::string GetPlayerState() { return ""; };
+  virtual bool SetPlayerState(const std::string& state) { return false;};
   
-  virtual CStdString GetPlayingTitle() { return ""; };
+  virtual std::string GetPlayingTitle() { return ""; };
 
   virtual bool SwitchChannel(const PVR::CPVRChannel &channel) { return false; }
 
+  // Note: the following "OMX" methods are deprecated and will be removed in the future
+  // They should be handled by the video renderer, not the player
   /*!
    \brief If the player uses bypass mode, define its rendering capabilities
    */
-  virtual void GetRenderFeatures(std::vector<int> &renderFeatures) {};
+  virtual void OMXGetRenderFeatures(std::vector<int> &renderFeatures) {};
   /*!
    \brief If the player uses bypass mode, define its deinterlace algorithms
    */
-  virtual void GetDeinterlaceMethods(std::vector<int> &deinterlaceMethods) {};
+  virtual void OMXGetDeinterlaceMethods(std::vector<int> &deinterlaceMethods) {};
   /*!
    \brief If the player uses bypass mode, define how deinterlace is set
    */
-  virtual void GetDeinterlaceModes(std::vector<int> &deinterlaceModes) {};
+  virtual void OMXGetDeinterlaceModes(std::vector<int> &deinterlaceModes) {};
   /*!
    \brief If the player uses bypass mode, define its scaling capabilities
    */
-  virtual void GetScalingMethods(std::vector<int> &scalingMethods) {};
+  virtual void OMXGetScalingMethods(std::vector<int> &scalingMethods) {};
   /*!
    \brief define the audio capabilities of the player (default=all)
    */

@@ -21,7 +21,6 @@
 #include "AppParamParser.h"
 #include "GUIInfoManager.h"
 #include "PlayListPlayer.h"
-#include "FileItem.h"
 #include "Application.h"
 #include "ApplicationMessenger.h"
 #include "settings/AdvancedSettings.h"
@@ -99,7 +98,7 @@ void CAppParamParser::DisplayHelp()
   printf("  -p or --portable\tXBMC will look for configurations in install folder instead of ~/.xbmc\n");
   printf("  --legacy-res\t\tEnables screen resolutions such as PAL, NTSC, etc.\n");
 #ifdef HAS_LIRC
-  printf("  -l or --lircdev\tLircDevice to use default is "LIRC_DEVICE" .\n");
+  printf("  -l or --lircdev\tLircDevice to use default is " LIRC_DEVICE " .\n");
   printf("  -n or --nolirc\tdo not use Lirc, i.e. no remote input.\n");
 #endif
   printf("  --debug\t\tEnable debug logging\n");
@@ -155,6 +154,6 @@ void CAppParamParser::PlayPlaylist()
     g_playlistPlayer.SetCurrentPlaylist(0);
   }
 
-  ThreadMessage tMsg = {TMSG_PLAYLISTPLAYER_PLAY, (DWORD) -1};
+  ThreadMessage tMsg = {TMSG_PLAYLISTPLAYER_PLAY, -1};
   CApplicationMessenger::Get().SendMessage(tMsg, false);
 }

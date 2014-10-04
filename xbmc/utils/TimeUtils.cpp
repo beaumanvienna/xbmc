@@ -22,6 +22,10 @@
 #include "XBDateTime.h"
 #include "threads/SystemClock.h"
 
+#if (defined HAVE_CONFIG_H) && (!defined TARGET_WINDOWS)
+  #include "config.h"
+#endif
+
 #if   defined(TARGET_DARWIN)
 #include <mach/mach_time.h>
 #include <CoreVideo/CVHostTime.h>
@@ -68,6 +72,12 @@ int64_t CurrentHostFrequency(void)
 CTimeSmoother *CTimeUtils::frameTimer = NULL;
 unsigned int CTimeUtils::frameTime = 0;
 
+void CTimeUtils::Close()
+{
+  delete frameTimer;
+  frameTimer = NULL;
+};
+
 void CTimeUtils::UpdateFrameTime(bool flip)
 {
   if (!frameTimer)
@@ -87,7 +97,13 @@ CDateTime CTimeUtils::GetLocalTime(time_t time)
 {
   CDateTime result;
 
-  tm *local = localtime(&time); // Conversion to local time
+  tm *local;
+#ifdef HAVE_LOCALTIME_R
+  tm res = {};
+  local = localtime_r(&time, &res); // Conversion to local time
+#else
+  local = localtime(&time); // Conversion to local time
+#endif
   /*
    * Microsoft implementation of localtime returns NULL if on or before epoch.
    * http://msdn.microsoft.com/en-us/library/bf12f0hc(VS.80).aspx

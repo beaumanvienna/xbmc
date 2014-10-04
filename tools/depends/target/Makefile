@@ -14,7 +14,8 @@ DEPENDS = \
 	libmodplug librtmp libxml2 yajl libmicrohttpd mysql libffi \
 	python26 afpfs-ng libshairplay \
 	libplist libcec libbluray boost tinyxml dummy-libxbmc \
-	libamplayer libssh taglib xbmc-pvr-addons libusb libnfs libmp3lame \
+	libamplayer libssh taglib libusb libnfs libmp3lame \
+	xbmc-pvr-addons xbmc-audioencoder-addons \
 	pythonmodule-pil libxslt ffmpeg
 
 ifeq ($(ENABLE_GPLV3),1)
@@ -25,11 +26,11 @@ endif
 
 ifeq ($(OS),ios)
   DEPENDS += Backrow
-  EXCLUDED_DEPENDS = libcec libcrystalhd libusb gmp nettle gnutls
+  EXCLUDED_DEPENDS = libcec libusb gmp nettle gnutls
 endif
 
 ifeq ($(OS),osx)
-  DEPENDS += libGLEW libsdl libcrystalhd
+  DEPENDS += libGLEW libsdl
   EXCLUDED_DEPENDS = libusb gmp nettle gnutls
 endif
 
@@ -57,10 +58,11 @@ LINUX_SYSTEM_LIBS=
 ifeq ($(OS),linux)
   #not for raspberry pi
   ifneq ($(TARGET_PLATFORM),raspberry-pi)
-    DEPENDS += alsa-lib libsdl linux-system-libs
-    ALSA_LIB = alsa-lib
+    DEPENDS += libsdl linux-system-libs
     LINUX_SYSTEM_LIBS = linux-system-libs
   endif
+  DEPENDS += alsa-lib
+  ALSA_LIB = alsa-lib
   FFMPEG_DEPENDS = gnutls
 endif
 
@@ -87,6 +89,7 @@ libplist: libxml2 $(ZLIB)
 libbluray: $(ICONV) libxml2
 libssh: openssl
 xbmc-pvr-addons: boost mysql
+xbmc-audioencoder-addons: libvorbis libflac libmp3lame libogg
 mysql: openssl
 libzip: $(ZLIB)
 libmp3lame: $(ICONV)

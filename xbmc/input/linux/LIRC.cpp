@@ -111,7 +111,7 @@ void CRemoteControl::Disconnect()
   }
 }
 
-void CRemoteControl::setDeviceName(const CStdString& value)
+void CRemoteControl::setDeviceName(const std::string& value)
 {
   if (value.length()>0)
     m_deviceName=value;
@@ -129,7 +129,7 @@ void CRemoteControl::Initialize()
   struct sockaddr_un addr;
   unsigned int now = XbmcThreads::SystemClockMillis();
 
-  if (!m_used || (now - m_lastInitAttempt) < (unsigned int)m_initRetryPeriod)
+  if (m_bInitialized || !m_used || (now - m_lastInitAttempt) < (unsigned int)m_initRetryPeriod)
     return;
   
   m_lastInitAttempt = now;
@@ -346,7 +346,7 @@ unsigned int CRemoteControl::GetHoldTime() const
   return m_holdTime;
 }
 
-void CRemoteControl::AddSendCommand(const CStdString& command)
+void CRemoteControl::AddSendCommand(const std::string& command)
 {
   if (!m_bInitialized || !m_used)
     return;

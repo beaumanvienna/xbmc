@@ -34,6 +34,7 @@
 #include "utils/log.h"
 #include "utils/XBMCTinyXML.h"
 #include "XBIRRemote.h"
+#include "Util.h"
 
 #if defined(TARGET_WINDOWS)
 #include "input/windows/WINJoystick.h"
@@ -88,6 +89,7 @@ static const ActionMapping actions[] =
         {"osd"               , ACTION_SHOW_OSD},
         {"showsubtitles"     , ACTION_SHOW_SUBTITLES},
         {"nextsubtitle"      , ACTION_NEXT_SUBTITLE},
+        {"cyclesubtitle"     , ACTION_CYCLE_SUBTITLE},
         {"codecinfo"         , ACTION_SHOW_CODEC},
         {"nextpicture"       , ACTION_NEXT_PICTURE},
         {"previouspicture"   , ACTION_PREV_PICTURE},
@@ -249,6 +251,7 @@ static const ActionMapping actions[] =
         {"rightclick"        , ACTION_MOUSE_RIGHT_CLICK},
         {"middleclick"       , ACTION_MOUSE_MIDDLE_CLICK},
         {"doubleclick"       , ACTION_MOUSE_DOUBLE_CLICK},
+        {"longclick"         , ACTION_MOUSE_LONG_CLICK},
         {"wheelup"           , ACTION_MOUSE_WHEEL_UP},
         {"wheeldown"         , ACTION_MOUSE_WHEEL_DOWN},
         {"mousedrag"         , ACTION_MOUSE_DRAG},
@@ -279,8 +282,17 @@ static const ActionMapping windows[] =
         {"music"                    , WINDOW_MUSIC},
         {"video"                    , WINDOW_VIDEOS},
         {"videos"                   , WINDOW_VIDEO_NAV},
-        {"tv"                       , WINDOW_PVR}, // backward compat
-        {"pvr"                      , WINDOW_PVR},
+        {"pvr"                      , WINDOW_TV_CHANNELS}, // backward compat
+        {"tvchannels"               , WINDOW_TV_CHANNELS},
+        {"tvrecordings"             , WINDOW_TV_RECORDINGS},
+        {"tvguide"                  , WINDOW_TV_GUIDE},
+        {"tvtimers"                 , WINDOW_TV_TIMERS},
+        {"tvsearch"                 , WINDOW_TV_SEARCH},
+        {"radiochannels"            , WINDOW_RADIO_CHANNELS},
+        {"radiorecordings"          , WINDOW_RADIO_RECORDINGS},
+        {"radioguide"               , WINDOW_RADIO_GUIDE},
+        {"radiotimers"              , WINDOW_RADIO_TIMERS},
+        {"radiosearch"              , WINDOW_RADIO_SEARCH},
         {"pvrguideinfo"             , WINDOW_DIALOG_PVR_GUIDE_INFO},
         {"pvrrecordinginfo"         , WINDOW_DIALOG_PVR_RECORDING_INFO},
         {"pvrtimersetting"          , WINDOW_DIALOG_PVR_TIMER_SETTING},
@@ -368,6 +380,7 @@ static const ActionMapping windows[] =
         {"textviewer"               , WINDOW_DIALOG_TEXT_VIEWER},
         {"fullscreenvideo"          , WINDOW_FULLSCREEN_VIDEO},
         {"fullscreenlivetv"         , WINDOW_FULLSCREEN_LIVETV}, // virtual window/keymap section for PVR specific bindings in fullscreen playback (which internally uses WINDOW_FULLSCREEN_VIDEO)
+        {"fullscreenradio"          , WINDOW_FULLSCREEN_RADIO}, // virtual window for fullscreen radio, uses WINDOW_VISUALISATION as fallback
         {"visualisation"            , WINDOW_VISUALISATION},
         {"slideshow"                , WINDOW_SLIDESHOW},
         {"filestackingdialog"       , WINDOW_DIALOG_FILESTACKING},
@@ -387,16 +400,18 @@ static const ActionMapping windows[] =
         {"mediafilter"              , WINDOW_DIALOG_MEDIA_FILTER},
         {"addon"                    , WINDOW_ADDON_START}};
 
-static const ActionMapping mousecommands[] =
+static const ActionMapping mousekeys[] =
 {
-  { "leftclick",   ACTION_MOUSE_LEFT_CLICK },
-  { "rightclick",  ACTION_MOUSE_RIGHT_CLICK },
-  { "middleclick", ACTION_MOUSE_MIDDLE_CLICK },
-  { "doubleclick", ACTION_MOUSE_DOUBLE_CLICK },
-  { "wheelup",     ACTION_MOUSE_WHEEL_UP },
-  { "wheeldown",   ACTION_MOUSE_WHEEL_DOWN },
-  { "mousedrag",   ACTION_MOUSE_DRAG },
-  { "mousemove",   ACTION_MOUSE_MOVE }
+  { "click",       KEY_MOUSE_CLICK },
+  { "leftclick",   KEY_MOUSE_CLICK },
+  { "rightclick",  KEY_MOUSE_RIGHTCLICK },
+  { "middleclick", KEY_MOUSE_MIDDLECLICK },
+  { "doubleclick", KEY_MOUSE_DOUBLE_CLICK },
+  { "longclick",   KEY_MOUSE_LONG_CLICK },
+  { "wheelup",     KEY_MOUSE_WHEEL_UP },
+  { "wheeldown",   KEY_MOUSE_WHEEL_DOWN },
+  { "mousedrag",   KEY_MOUSE_DRAG },
+  { "mousemove",   KEY_MOUSE_MOVE }
 };
 
 static const ActionMapping touchcommands[] =
@@ -415,7 +430,8 @@ static const ActionMapping touchcommands[] =
 static const WindowMapping fallbackWindows[] =
 {
   { WINDOW_FULLSCREEN_LIVETV,          WINDOW_FULLSCREEN_VIDEO },
-  { WINDOW_DIALOG_FULLSCREEN_INFO,     WINDOW_FULLSCREEN_VIDEO }
+  { WINDOW_DIALOG_FULLSCREEN_INFO,     WINDOW_FULLSCREEN_VIDEO },
+  { WINDOW_FULLSCREEN_RADIO,           WINDOW_VISUALISATION    }
 };
 
 #ifdef TARGET_WINDOWS
@@ -464,8 +480,8 @@ CButtonTranslator::CButtonTranslator()
 void CButtonTranslator::ClearLircButtonMapEntries()
 {
   vector<lircButtonMap*> maps;
-  for (map<CStdString,lircButtonMap*>::iterator it  = lircRemotesMap.begin();
-                                                it != lircRemotesMap.end();++it)
+  for (map<std::string,lircButtonMap*>::iterator it  = lircRemotesMap.begin();
+                                                 it != lircRemotesMap.end();++it)
     maps.push_back(it->second);
   sort(maps.begin(),maps.end());
   vector<lircButtonMap*>::iterator itend = unique(maps.begin(),maps.end());
@@ -482,10 +498,10 @@ CButtonTranslator::~CButtonTranslator()
 }
 
 // Add the supplied device name to the list of connected devices
-void CButtonTranslator::AddDevice(CStdString& strDevice)
+void CButtonTranslator::AddDevice(std::string& strDevice)
 {
   // Only add the device if it isn't already in the list
-  std::list<CStdString>::iterator it;
+  std::list<std::string>::iterator it;
   for (it = m_deviceList.begin(); it != m_deviceList.end(); it++)
     if (*it == strDevice)
       return;
@@ -498,10 +514,10 @@ void CButtonTranslator::AddDevice(CStdString& strDevice)
   Load();
 }
 
-void CButtonTranslator::RemoveDevice(CStdString& strDevice)
+void CButtonTranslator::RemoveDevice(std::string& strDevice)
 {
   // Find the device
-  std::list<CStdString>::iterator it;
+  std::list<std::string>::iterator it;
   for (it = m_deviceList.begin(); it != m_deviceList.end(); it++)
     if (*it == strDevice)
       break;
@@ -528,7 +544,7 @@ bool CButtonTranslator::Load(bool AlwaysLoad)
   };
   bool success = false;
 
-  for (unsigned int dirIndex = 0; dirIndex < sizeof(DIRS_TO_CHECK)/sizeof(DIRS_TO_CHECK[0]); ++dirIndex)
+  for (unsigned int dirIndex = 0; dirIndex < ARRAY_SIZE(DIRS_TO_CHECK); ++dirIndex)
   {
     if (XFILE::CDirectory::Exists(DIRS_TO_CHECK[dirIndex]))
     {
@@ -543,10 +559,10 @@ bool CButtonTranslator::Load(bool AlwaysLoad)
       }
 
       // Load mappings for any HID devices we have connected
-      std::list<CStdString>::iterator it;
+      std::list<std::string>::iterator it;
       for (it = m_deviceList.begin(); it != m_deviceList.end(); it++)
       {
-        CStdString devicedir = DIRS_TO_CHECK[dirIndex];
+        std::string devicedir = DIRS_TO_CHECK[dirIndex];
         devicedir.append(*it);
         devicedir.append("/");
         if( XFILE::CDirectory::Exists(devicedir) )
@@ -577,7 +593,7 @@ bool CButtonTranslator::Load(bool AlwaysLoad)
 #else
 #define REMOTEMAP "IRSSmap.xml"
 #endif
-  CStdString lircmapPath = URIUtils::AddFileToFolder("special://xbmc/system/", REMOTEMAP);
+  std::string lircmapPath = URIUtils::AddFileToFolder("special://xbmc/system/", REMOTEMAP);
   lircRemotesMap.clear();
   if(CFile::Exists(lircmapPath))
     success |= LoadLircMap(lircmapPath);
@@ -600,7 +616,7 @@ bool CButtonTranslator::Load(bool AlwaysLoad)
   return true;
 }
 
-bool CButtonTranslator::LoadKeymap(const CStdString &keymapPath)
+bool CButtonTranslator::LoadKeymap(const std::string &keymapPath)
 {
   CXBMCTinyXML xmlDoc;
 
@@ -616,7 +632,7 @@ bool CButtonTranslator::LoadKeymap(const CStdString &keymapPath)
     CLog::Log(LOGERROR, "Error getting keymap root: %s", keymapPath.c_str());
     return false;
   }
-  CStdString strValue = pRoot->Value();
+  std::string strValue = pRoot->Value();
   if ( strValue != "keymap")
   {
     CLog::Log(LOGERROR, "%s Doesn't contain <keymap>", keymapPath.c_str());
@@ -645,8 +661,7 @@ bool CButtonTranslator::LoadKeymap(const CStdString &keymapPath)
   return true;
 }
 
-#if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
-bool CButtonTranslator::LoadLircMap(const CStdString &lircmapPath)
+bool CButtonTranslator::LoadLircMap(const std::string &lircmapPath)
 {
 #ifdef TARGET_POSIX
 #define REMOTEMAPTAG "lircmap"
@@ -665,7 +680,7 @@ bool CButtonTranslator::LoadLircMap(const CStdString &lircmapPath)
   }
 
   TiXmlElement* pRoot = xmlDoc.RootElement();
-  CStdString strValue = pRoot->Value();
+  std::string strValue = pRoot->Value();
   if (strValue != REMOTEMAPTAG)
   {
     CLog::Log(LOGERROR, "%sl Doesn't contain <%s>", lircmapPath.c_str(), REMOTEMAPTAG);
@@ -682,8 +697,8 @@ bool CButtonTranslator::LoadLircMap(const CStdString &lircmapPath)
       if (szRemote)
       {
         TiXmlAttribute* pAttr = pRemote->ToElement()->FirstAttribute();
-        const char* szDeviceName = pAttr->Value();
-        MapRemote(pRemote, szDeviceName);
+        if (pAttr)
+          MapRemote(pRemote, pAttr->Value());
       }
     }
     pRemote = pRemote->NextSibling();
@@ -696,7 +711,7 @@ void CButtonTranslator::MapRemote(TiXmlNode *pRemote, const char* szDevice)
 {
   CLog::Log(LOGINFO, "* Adding remote mapping for device '%s'", szDevice);
   vector<string> RemoteNames;
-  map<CStdString, lircButtonMap*>::iterator it = lircRemotesMap.find(szDevice);
+  map<std::string, lircButtonMap*>::iterator it = lircRemotesMap.find(szDevice);
   if (it == lircRemotesMap.end())
     lircRemotesMap[szDevice] = new lircButtonMap;
   lircButtonMap& buttons = *lircRemotesMap[szDevice];
@@ -704,14 +719,13 @@ void CButtonTranslator::MapRemote(TiXmlNode *pRemote, const char* szDevice)
   TiXmlElement *pButton = pRemote->FirstChildElement();
   while (pButton)
   {
-    if (strcmpi(pButton->Value(), "altname")==0)
-      RemoteNames.push_back(string(pButton->GetText()));
-    else
+    if (!pButton->NoChildren())
     {
-      if (pButton->FirstChild() && pButton->FirstChild()->Value())
-        buttons[pButton->FirstChild()->Value()] = pButton->Value();
+      if (pButton->ValueStr() == "altname")
+        RemoteNames.push_back(pButton->FirstChild()->ValueStr());
+      else
+        buttons[pButton->FirstChild()->ValueStr()] = pButton->ValueStr();
     }
-
     pButton = pButton->NextSiblingElement();
   }
   for (vector<string>::iterator it  = RemoteNames.begin();
@@ -725,7 +739,7 @@ void CButtonTranslator::MapRemote(TiXmlNode *pRemote, const char* szDevice)
 int CButtonTranslator::TranslateLircRemoteString(const char* szDevice, const char *szButton)
 {
   // Find the device
-  map<CStdString, lircButtonMap*>::iterator it = lircRemotesMap.find(szDevice);
+  map<std::string, lircButtonMap*>::iterator it = lircRemotesMap.find(szDevice);
   if (it == lircRemotesMap.end())
     return 0;
 
@@ -740,7 +754,6 @@ int CButtonTranslator::TranslateLircRemoteString(const char* szDevice, const cha
 
   return TranslateRemoteString((*it2).second.c_str());
 }
-#endif
 
 #if defined(HAS_SDL_JOYSTICK) || defined(HAS_EVENT_SERVER)
 void CButtonTranslator::MapJoystickActions(int windowID, TiXmlNode *pJoystick)
@@ -762,75 +775,68 @@ void CButtonTranslator::MapJoystickActions(int windowID, TiXmlNode *pJoystick)
   // parse map
   TiXmlElement *pButton = pJoystick->FirstChildElement();
   int id = 0;
-  //char* szId;
-  const char* szType;
-  const char *szAction;
   while (pButton)
   {
-    szType = pButton->Value();
-    szAction = pButton->GetText();
-    if (szAction == NULL)
-      szAction = "";
-    if (szType)
+    const std::string &type = pButton->ValueStr();
+    std::string action;
+    if (!pButton->NoChildren())
+      action = pButton->FirstChild()->ValueStr();
+
+    if ((pButton->QueryIntAttribute("id", &id) == TIXML_SUCCESS) && id>=0 && id<=256)
     {
-      if ((pButton->QueryIntAttribute("id", &id) == TIXML_SUCCESS) && id>=0 && id<=256)
+      if (type == "button")
       {
-        if (strcmpi(szType, "button")==0)
+        buttonMap[id] = action;
+      }
+      else if (type == "axis")
+      {
+        int limit = 0;
+        if (pButton->QueryIntAttribute("limit", &limit) == TIXML_SUCCESS)
         {
-          buttonMap[id] = string(szAction);
-        }
-        else if (strcmpi(szType, "axis")==0)
-        {
-          int limit = 0;
-          if (pButton->QueryIntAttribute("limit", &limit) == TIXML_SUCCESS)
-          {
-            if (limit==-1)
-              axisMap[-id] = string(szAction);
-            else if (limit==1)
-              axisMap[id] = string(szAction);
-            else if (limit==0)
-              axisMap[id|0xFFFF0000] = string(szAction);
-            else
-            {
-              axisMap[id] = string(szAction);
-              axisMap[-id] = string(szAction);
-              CLog::Log(LOGERROR, "Error in joystick map, invalid limit specified %d for axis %d", limit, id);
-            }
-          }
+          if (limit==-1)
+            axisMap[-id] = action;
+          else if (limit==1)
+            axisMap[id] = action;
+          else if (limit==0)
+            axisMap[id|0xFFFF0000] = action;
           else
           {
-            axisMap[id] = string(szAction);
-            axisMap[-id] = string(szAction);
-          }
-        }
-        else if (strcmpi(szType, "hat")==0)
-        {
-          string position;
-          if (pButton->QueryValueAttribute("position", &position) == TIXML_SUCCESS)
-          {
-            uint32_t hatID = id|0xFFF00000;
-            if (position.compare("up") == 0)
-              hatMap[(JACTIVE_HAT_UP<<16)|hatID] = string(szAction);
-            else if (position.compare("down") == 0)
-              hatMap[(JACTIVE_HAT_DOWN<<16)|hatID] = string(szAction);
-            else if (position.compare("right") == 0)
-              hatMap[(JACTIVE_HAT_RIGHT<<16)|hatID] = string(szAction);
-            else if (position.compare("left") == 0)
-              hatMap[(JACTIVE_HAT_LEFT<<16)|hatID] = string(szAction);
-            else
-              CLog::Log(LOGERROR, "Error in joystick map, invalid position specified %s for axis %d", position.c_str(), id);
+            axisMap[id] = action;
+            axisMap[-id] = action;
+            CLog::Log(LOGERROR, "Error in joystick map, invalid limit specified %d for axis %d", limit, id);
           }
         }
         else
-          CLog::Log(LOGERROR, "Error reading joystick map element, unknown button type: %s", szType);
+        {
+          axisMap[id] = action;
+          axisMap[-id] = action;
+        }
       }
-      else if (strcmpi(szType, "altname")==0)
-        joynames.push_back(string(szAction));
+      else if (type == "hat")
+      {
+        string position;
+        if (pButton->QueryValueAttribute("position", &position) == TIXML_SUCCESS)
+        {
+          uint32_t hatID = id|0xFFF00000;
+          if (position.compare("up") == 0)
+            hatMap[(JACTIVE_HAT_UP<<16)|hatID] = action;
+          else if (position.compare("down") == 0)
+            hatMap[(JACTIVE_HAT_DOWN<<16)|hatID] = action;
+          else if (position.compare("right") == 0)
+            hatMap[(JACTIVE_HAT_RIGHT<<16)|hatID] = action;
+          else if (position.compare("left") == 0)
+            hatMap[(JACTIVE_HAT_LEFT<<16)|hatID] = action;
+          else
+            CLog::Log(LOGERROR, "Error in joystick map, invalid position specified %s for axis %d", position.c_str(), id);
+        }
+      }
       else
-        CLog::Log(LOGERROR, "Error reading joystick map element, Invalid id: %d", id);
+        CLog::Log(LOGERROR, "Error reading joystick map element, unknown button type: %s", type.c_str());
     }
+    else if (type == "altname")
+      joynames.push_back(action);
     else
-      CLog::Log(LOGERROR, "Error reading joystick map element, skipping");
+      CLog::Log(LOGERROR, "Error reading joystick map element, Invalid id: %d", id);
 
     pButton = pButton->NextSiblingElement();
   }
@@ -845,7 +851,7 @@ void CButtonTranslator::MapJoystickActions(int windowID, TiXmlNode *pJoystick)
   }
 }
 
-bool CButtonTranslator::TranslateJoystickString(int window, const char* szDevice, int id, short inputType, int& action, CStdString& strAction, bool &fullrange)
+bool CButtonTranslator::TranslateJoystickString(int window, const char* szDevice, int id, short inputType, int& action, std::string& strAction, bool &fullrange)
 {
   fullrange = false;
 
@@ -901,7 +907,13 @@ bool CButtonTranslator::TranslateTouchAction(int window, int touchAction, int to
 
   action = GetTouchActionCode(window, touchAction);
   if (action <= 0)
-    action = GetTouchActionCode(-1, touchAction);
+  {
+    int fallbackWindow = GetFallbackWindow(window);
+    if (fallbackWindow > -1)
+      action = GetTouchActionCode(fallbackWindow, touchAction);
+    if (action <= 0)
+      action = GetTouchActionCode(-1, touchAction);
+  }
 
   return action > 0;
 }
@@ -922,7 +934,7 @@ int CButtonTranslator::GetActionCode(int window, int action)
 /*
  * Translates a joystick input to an action code
  */
-int CButtonTranslator::GetActionCode(int window, int id, const JoystickMap &wmap, CStdString &strAction, bool &fullrange) const
+int CButtonTranslator::GetActionCode(int window, int id, const JoystickMap &wmap, std::string &strAction, bool &fullrange) const
 {
   int action = 0;
   bool found = false;
@@ -981,7 +993,7 @@ void CButtonTranslator::GetWindows(std::vector<std::string> &windowList)
 
 int CButtonTranslator::GetFallbackWindow(int windowID)
 {
-  for (unsigned int index = 0; index < sizeof(fallbackWindows) / sizeof(fallbackWindows[0]); ++index)
+  for (unsigned int index = 0; index < ARRAY_SIZE(fallbackWindows); ++index)
   {
     if (fallbackWindows[index].origin == windowID)
       return fallbackWindows[index].target;
@@ -996,7 +1008,7 @@ int CButtonTranslator::GetFallbackWindow(int windowID)
 
 CAction CButtonTranslator::GetAction(int window, const CKey &key, bool fallback)
 {
-  CStdString strAction;
+  std::string strAction;
   // try to get the action from the current window
   int actionID = GetActionCode(window, key, strAction);
   // if it's invalid, try to get it from the global map
@@ -1014,7 +1026,7 @@ CAction CButtonTranslator::GetAction(int window, const CKey &key, bool fallback)
   return action;
 }
 
-int CButtonTranslator::GetActionCode(int window, const CKey &key, CStdString &strAction) const
+int CButtonTranslator::GetActionCode(int window, const CKey &key, std::string &strAction) const
 {
   uint32_t code = key.GetButtonCode();
 
@@ -1023,11 +1035,10 @@ int CButtonTranslator::GetActionCode(int window, const CKey &key, CStdString &st
     return 0;
   buttonMap::const_iterator it2 = (*it).second.find(code);
   int action = 0;
-  while (it2 != (*it).second.end())
+  if (it2 != (*it).second.end())
   {
     action = (*it2).second.id;
     strAction = (*it2).second.strID;
-    it2 = (*it).second.end();
   }
 #ifdef TARGET_POSIX
   // Some buttoncodes changed in Hardy
@@ -1035,12 +1046,11 @@ int CButtonTranslator::GetActionCode(int window, const CKey &key, CStdString &st
   {
     CLog::Log(LOGDEBUG, "%s: Trying Hardy keycode for %#04x", __FUNCTION__, code);
     code &= ~0x0F00;
-    buttonMap::const_iterator it2 = (*it).second.find(code);
-    while (it2 != (*it).second.end())
+    it2 = (*it).second.find(code);
+    if (it2 != (*it).second.end())
     {
       action = (*it2).second.id;
       strAction = (*it2).second.strID;
-      it2 = (*it).second.end();
     }
   }
 #endif
@@ -1069,7 +1079,7 @@ void CButtonTranslator::MapAction(uint32_t buttonCode, const char *szAction, but
   }
 }
 
-bool CButtonTranslator::HasDeviceType(TiXmlNode *pWindow, CStdString type)
+bool CButtonTranslator::HasDeviceType(TiXmlNode *pWindow, std::string type)
 {
   return pWindow->FirstChild(type) != NULL;
 }
@@ -1084,7 +1094,7 @@ void CButtonTranslator::MapWindowActions(TiXmlNode *pWindow, int windowID)
   const char* types[] = {"gamepad", "remote", "universalremote", "keyboard", "mouse", "appcommand", NULL};
   for (int i = 0; types[i]; ++i)
   {
-    CStdString type(types[i]);
+    std::string type(types[i]);
     if (HasDeviceType(pWindow, type))
     {
       buttonMap map;
@@ -1111,7 +1121,7 @@ void CButtonTranslator::MapWindowActions(TiXmlNode *pWindow, int windowID)
         else if (type == "keyboard")
             buttonCode = TranslateKeyboardButton(pButton);
         else if (type == "mouse")
-            buttonCode = TranslateMouseCommand(pButton->Value());
+            buttonCode = TranslateMouseCommand(pButton);
         else if (type == "appcommand")
             buttonCode = TranslateAppCommand(pButton->Value());
 
@@ -1152,14 +1162,14 @@ void CButtonTranslator::MapWindowActions(TiXmlNode *pWindow, int windowID)
 bool CButtonTranslator::TranslateActionString(const char *szAction, int &action)
 {
   action = ACTION_NONE;
-  CStdString strAction = szAction;
+  std::string strAction = szAction;
   StringUtils::ToLower(strAction);
   if (CBuiltins::HasCommand(strAction)) 
     action = ACTION_BUILT_IN_FUNCTION;
 
-  for (unsigned int index=0;index < sizeof(actions)/sizeof(actions[0]);++index)
+  for (unsigned int index=0;index < ARRAY_SIZE(actions);++index)
   {
-    if (strAction.Equals(actions[index].name))
+    if (strAction == actions[index].name)
     {
       action = actions[index].action;
       break;
@@ -1175,9 +1185,9 @@ bool CButtonTranslator::TranslateActionString(const char *szAction, int &action)
   return true;
 }
 
-CStdString CButtonTranslator::TranslateWindow(int windowID)
+std::string CButtonTranslator::TranslateWindow(int windowID)
 {
-  for (unsigned int index = 0; index < sizeof(windows) / sizeof(windows[0]); ++index)
+  for (unsigned int index = 0; index < ARRAY_SIZE(windows); ++index)
   {
     if (windows[index].action == windowID)
       return windows[index].name;
@@ -1185,9 +1195,9 @@ CStdString CButtonTranslator::TranslateWindow(int windowID)
   return "";
 }
 
-int CButtonTranslator::TranslateWindow(const CStdString &window)
+int CButtonTranslator::TranslateWindow(const std::string &window)
 {
-  CStdString strWindow(window);
+  std::string strWindow(window);
   if (strWindow.empty()) 
     return WINDOW_INVALID;
   StringUtils::ToLower(strWindow);
@@ -1210,9 +1220,9 @@ int CButtonTranslator::TranslateWindow(const CStdString &window)
   }
 
   // run through the window structure
-  for (unsigned int index = 0; index < sizeof(windows) / sizeof(windows[0]); ++index)
+  for (unsigned int index = 0; index < ARRAY_SIZE(windows); ++index)
   {
-    if (strWindow.Equals(windows[index].name))
+    if (strWindow == windows[index].name)
       return windows[index].action;
   }
 
@@ -1225,36 +1235,36 @@ uint32_t CButtonTranslator::TranslateGamepadString(const char *szButton)
   if (!szButton) 
     return 0;
   uint32_t buttonCode = 0;
-  CStdString strButton = szButton;
+  std::string strButton = szButton;
   StringUtils::ToLower(strButton);
-  if (strButton.Equals("a")) buttonCode = KEY_BUTTON_A;
-  else if (strButton.Equals("b")) buttonCode = KEY_BUTTON_B;
-  else if (strButton.Equals("x")) buttonCode = KEY_BUTTON_X;
-  else if (strButton.Equals("y")) buttonCode = KEY_BUTTON_Y;
-  else if (strButton.Equals("white")) buttonCode = KEY_BUTTON_WHITE;
-  else if (strButton.Equals("black")) buttonCode = KEY_BUTTON_BLACK;
-  else if (strButton.Equals("start")) buttonCode = KEY_BUTTON_START;
-  else if (strButton.Equals("back")) buttonCode = KEY_BUTTON_BACK;
-  else if (strButton.Equals("leftthumbbutton")) buttonCode = KEY_BUTTON_LEFT_THUMB_BUTTON;
-  else if (strButton.Equals("rightthumbbutton")) buttonCode = KEY_BUTTON_RIGHT_THUMB_BUTTON;
-  else if (strButton.Equals("leftthumbstick")) buttonCode = KEY_BUTTON_LEFT_THUMB_STICK;
-  else if (strButton.Equals("leftthumbstickup")) buttonCode = KEY_BUTTON_LEFT_THUMB_STICK_UP;
-  else if (strButton.Equals("leftthumbstickdown")) buttonCode = KEY_BUTTON_LEFT_THUMB_STICK_DOWN;
-  else if (strButton.Equals("leftthumbstickleft")) buttonCode = KEY_BUTTON_LEFT_THUMB_STICK_LEFT;
-  else if (strButton.Equals("leftthumbstickright")) buttonCode = KEY_BUTTON_LEFT_THUMB_STICK_RIGHT;
-  else if (strButton.Equals("rightthumbstick")) buttonCode = KEY_BUTTON_RIGHT_THUMB_STICK;
-  else if (strButton.Equals("rightthumbstickup")) buttonCode = KEY_BUTTON_RIGHT_THUMB_STICK_UP;
-  else if (strButton.Equals("rightthumbstickdown")) buttonCode = KEY_BUTTON_RIGHT_THUMB_STICK_DOWN;
-  else if (strButton.Equals("rightthumbstickleft")) buttonCode = KEY_BUTTON_RIGHT_THUMB_STICK_LEFT;
-  else if (strButton.Equals("rightthumbstickright")) buttonCode = KEY_BUTTON_RIGHT_THUMB_STICK_RIGHT;
-  else if (strButton.Equals("lefttrigger")) buttonCode = KEY_BUTTON_LEFT_TRIGGER;
-  else if (strButton.Equals("righttrigger")) buttonCode = KEY_BUTTON_RIGHT_TRIGGER;
-  else if (strButton.Equals("leftanalogtrigger")) buttonCode = KEY_BUTTON_LEFT_ANALOG_TRIGGER;
-  else if (strButton.Equals("rightanalogtrigger")) buttonCode = KEY_BUTTON_RIGHT_ANALOG_TRIGGER;
-  else if (strButton.Equals("dpadleft")) buttonCode = KEY_BUTTON_DPAD_LEFT;
-  else if (strButton.Equals("dpadright")) buttonCode = KEY_BUTTON_DPAD_RIGHT;
-  else if (strButton.Equals("dpadup")) buttonCode = KEY_BUTTON_DPAD_UP;
-  else if (strButton.Equals("dpaddown")) buttonCode = KEY_BUTTON_DPAD_DOWN;
+  if (strButton == "a") buttonCode = KEY_BUTTON_A;
+  else if (strButton == "b") buttonCode = KEY_BUTTON_B;
+  else if (strButton == "x") buttonCode = KEY_BUTTON_X;
+  else if (strButton == "y") buttonCode = KEY_BUTTON_Y;
+  else if (strButton == "white") buttonCode = KEY_BUTTON_WHITE;
+  else if (strButton == "black") buttonCode = KEY_BUTTON_BLACK;
+  else if (strButton == "start") buttonCode = KEY_BUTTON_START;
+  else if (strButton == "back") buttonCode = KEY_BUTTON_BACK;
+  else if (strButton == "leftthumbbutton") buttonCode = KEY_BUTTON_LEFT_THUMB_BUTTON;
+  else if (strButton == "rightthumbbutton") buttonCode = KEY_BUTTON_RIGHT_THUMB_BUTTON;
+  else if (strButton == "leftthumbstick") buttonCode = KEY_BUTTON_LEFT_THUMB_STICK;
+  else if (strButton == "leftthumbstickup") buttonCode = KEY_BUTTON_LEFT_THUMB_STICK_UP;
+  else if (strButton == "leftthumbstickdown") buttonCode = KEY_BUTTON_LEFT_THUMB_STICK_DOWN;
+  else if (strButton == "leftthumbstickleft") buttonCode = KEY_BUTTON_LEFT_THUMB_STICK_LEFT;
+  else if (strButton == "leftthumbstickright") buttonCode = KEY_BUTTON_LEFT_THUMB_STICK_RIGHT;
+  else if (strButton == "rightthumbstick") buttonCode = KEY_BUTTON_RIGHT_THUMB_STICK;
+  else if (strButton == "rightthumbstickup") buttonCode = KEY_BUTTON_RIGHT_THUMB_STICK_UP;
+  else if (strButton =="rightthumbstickdown") buttonCode = KEY_BUTTON_RIGHT_THUMB_STICK_DOWN;
+  else if (strButton == "rightthumbstickleft") buttonCode = KEY_BUTTON_RIGHT_THUMB_STICK_LEFT;
+  else if (strButton == "rightthumbstickright") buttonCode = KEY_BUTTON_RIGHT_THUMB_STICK_RIGHT;
+  else if (strButton == "lefttrigger") buttonCode = KEY_BUTTON_LEFT_TRIGGER;
+  else if (strButton == "righttrigger") buttonCode = KEY_BUTTON_RIGHT_TRIGGER;
+  else if (strButton == "leftanalogtrigger") buttonCode = KEY_BUTTON_LEFT_ANALOG_TRIGGER;
+  else if (strButton == "rightanalogtrigger") buttonCode = KEY_BUTTON_RIGHT_ANALOG_TRIGGER;
+  else if (strButton == "dpadleft") buttonCode = KEY_BUTTON_DPAD_LEFT;
+  else if (strButton == "dpadright") buttonCode = KEY_BUTTON_DPAD_RIGHT;
+  else if (strButton == "dpadup") buttonCode = KEY_BUTTON_DPAD_UP;
+  else if (strButton == "dpaddown") buttonCode = KEY_BUTTON_DPAD_DOWN;
   else CLog::Log(LOGERROR, "Gamepad Translator: Can't find button %s", strButton.c_str());
   return buttonCode;
 }
@@ -1264,69 +1274,71 @@ uint32_t CButtonTranslator::TranslateRemoteString(const char *szButton)
   if (!szButton) 
     return 0;
   uint32_t buttonCode = 0;
-  CStdString strButton = szButton;
+  std::string strButton = szButton;
   StringUtils::ToLower(strButton);
-  if (strButton.Equals("left")) buttonCode = XINPUT_IR_REMOTE_LEFT;
-  else if (strButton.Equals("right")) buttonCode = XINPUT_IR_REMOTE_RIGHT;
-  else if (strButton.Equals("up")) buttonCode = XINPUT_IR_REMOTE_UP;
-  else if (strButton.Equals("down")) buttonCode = XINPUT_IR_REMOTE_DOWN;
-  else if (strButton.Equals("select")) buttonCode = XINPUT_IR_REMOTE_SELECT;
-  else if (strButton.Equals("back")) buttonCode = XINPUT_IR_REMOTE_BACK;
-  else if (strButton.Equals("menu")) buttonCode = XINPUT_IR_REMOTE_MENU;
-  else if (strButton.Equals("info")) buttonCode = XINPUT_IR_REMOTE_INFO;
-  else if (strButton.Equals("display")) buttonCode = XINPUT_IR_REMOTE_DISPLAY;
-  else if (strButton.Equals("title")) buttonCode = XINPUT_IR_REMOTE_TITLE;
-  else if (strButton.Equals("play")) buttonCode = XINPUT_IR_REMOTE_PLAY;
-  else if (strButton.Equals("pause")) buttonCode = XINPUT_IR_REMOTE_PAUSE;
-  else if (strButton.Equals("reverse")) buttonCode = XINPUT_IR_REMOTE_REVERSE;
-  else if (strButton.Equals("forward")) buttonCode = XINPUT_IR_REMOTE_FORWARD;
-  else if (strButton.Equals("skipplus")) buttonCode = XINPUT_IR_REMOTE_SKIP_PLUS;
-  else if (strButton.Equals("skipminus")) buttonCode = XINPUT_IR_REMOTE_SKIP_MINUS;
-  else if (strButton.Equals("stop")) buttonCode = XINPUT_IR_REMOTE_STOP;
-  else if (strButton.Equals("zero")) buttonCode = XINPUT_IR_REMOTE_0;
-  else if (strButton.Equals("one")) buttonCode = XINPUT_IR_REMOTE_1;
-  else if (strButton.Equals("two")) buttonCode = XINPUT_IR_REMOTE_2;
-  else if (strButton.Equals("three")) buttonCode = XINPUT_IR_REMOTE_3;
-  else if (strButton.Equals("four")) buttonCode = XINPUT_IR_REMOTE_4;
-  else if (strButton.Equals("five")) buttonCode = XINPUT_IR_REMOTE_5;
-  else if (strButton.Equals("six")) buttonCode = XINPUT_IR_REMOTE_6;
-  else if (strButton.Equals("seven")) buttonCode = XINPUT_IR_REMOTE_7;
-  else if (strButton.Equals("eight")) buttonCode = XINPUT_IR_REMOTE_8;
-  else if (strButton.Equals("nine")) buttonCode = XINPUT_IR_REMOTE_9;
+  if (strButton == "left") buttonCode = XINPUT_IR_REMOTE_LEFT;
+  else if (strButton =="right") buttonCode = XINPUT_IR_REMOTE_RIGHT;
+  else if (strButton =="up") buttonCode = XINPUT_IR_REMOTE_UP;
+  else if (strButton == "down") buttonCode = XINPUT_IR_REMOTE_DOWN;
+  else if (strButton == "select") buttonCode = XINPUT_IR_REMOTE_SELECT;
+  else if (strButton == "back") buttonCode = XINPUT_IR_REMOTE_BACK;
+  else if (strButton == "menu") buttonCode = XINPUT_IR_REMOTE_MENU;
+  else if (strButton == "info") buttonCode = XINPUT_IR_REMOTE_INFO;
+  else if (strButton == "display") buttonCode = XINPUT_IR_REMOTE_DISPLAY;
+  else if (strButton == "title") buttonCode = XINPUT_IR_REMOTE_TITLE;
+  else if (strButton == "play") buttonCode = XINPUT_IR_REMOTE_PLAY;
+  else if (strButton == "pause") buttonCode = XINPUT_IR_REMOTE_PAUSE;
+  else if (strButton == "reverse") buttonCode = XINPUT_IR_REMOTE_REVERSE;
+  else if (strButton == "forward") buttonCode = XINPUT_IR_REMOTE_FORWARD;
+  else if (strButton == "skipplus") buttonCode = XINPUT_IR_REMOTE_SKIP_PLUS;
+  else if (strButton == "skipminus") buttonCode = XINPUT_IR_REMOTE_SKIP_MINUS;
+  else if (strButton == "stop") buttonCode = XINPUT_IR_REMOTE_STOP;
+  else if (strButton == "zero") buttonCode = XINPUT_IR_REMOTE_0;
+  else if (strButton == "one") buttonCode = XINPUT_IR_REMOTE_1;
+  else if (strButton == "two") buttonCode = XINPUT_IR_REMOTE_2;
+  else if (strButton == "three") buttonCode = XINPUT_IR_REMOTE_3;
+  else if (strButton == "four") buttonCode = XINPUT_IR_REMOTE_4;
+  else if (strButton == "five") buttonCode = XINPUT_IR_REMOTE_5;
+  else if (strButton == "six") buttonCode = XINPUT_IR_REMOTE_6;
+  else if (strButton == "seven") buttonCode = XINPUT_IR_REMOTE_7;
+  else if (strButton == "eight") buttonCode = XINPUT_IR_REMOTE_8;
+  else if (strButton == "nine") buttonCode = XINPUT_IR_REMOTE_9;
   // additional keys from the media center extender for xbox remote
-  else if (strButton.Equals("power")) buttonCode = XINPUT_IR_REMOTE_POWER;
-  else if (strButton.Equals("mytv")) buttonCode = XINPUT_IR_REMOTE_MY_TV;
-  else if (strButton.Equals("mymusic")) buttonCode = XINPUT_IR_REMOTE_MY_MUSIC;
-  else if (strButton.Equals("mypictures")) buttonCode = XINPUT_IR_REMOTE_MY_PICTURES;
-  else if (strButton.Equals("myvideo")) buttonCode = XINPUT_IR_REMOTE_MY_VIDEOS;
-  else if (strButton.Equals("record")) buttonCode = XINPUT_IR_REMOTE_RECORD;
-  else if (strButton.Equals("start")) buttonCode = XINPUT_IR_REMOTE_START;
-  else if (strButton.Equals("volumeplus")) buttonCode = XINPUT_IR_REMOTE_VOLUME_PLUS;
-  else if (strButton.Equals("volumeminus")) buttonCode = XINPUT_IR_REMOTE_VOLUME_MINUS;
-  else if (strButton.Equals("channelplus")) buttonCode = XINPUT_IR_REMOTE_CHANNEL_PLUS;
-  else if (strButton.Equals("channelminus")) buttonCode = XINPUT_IR_REMOTE_CHANNEL_MINUS;
-  else if (strButton.Equals("pageplus")) buttonCode = XINPUT_IR_REMOTE_CHANNEL_PLUS;
-  else if (strButton.Equals("pageminus")) buttonCode = XINPUT_IR_REMOTE_CHANNEL_MINUS;
-  else if (strButton.Equals("mute")) buttonCode = XINPUT_IR_REMOTE_MUTE;
-  else if (strButton.Equals("recordedtv")) buttonCode = XINPUT_IR_REMOTE_RECORDED_TV;
-  else if (strButton.Equals("guide")) buttonCode = XINPUT_IR_REMOTE_GUIDE;
-  else if (strButton.Equals("livetv")) buttonCode = XINPUT_IR_REMOTE_LIVE_TV;
-  else if (strButton.Equals("liveradio")) buttonCode = XINPUT_IR_REMOTE_LIVE_RADIO;
-  else if (strButton.Equals("epgsearch")) buttonCode = XINPUT_IR_REMOTE_EPG_SEARCH;
-  else if (strButton.Equals("star")) buttonCode = XINPUT_IR_REMOTE_STAR;
-  else if (strButton.Equals("hash")) buttonCode = XINPUT_IR_REMOTE_HASH;
-  else if (strButton.Equals("clear")) buttonCode = XINPUT_IR_REMOTE_CLEAR;
-  else if (strButton.Equals("enter")) buttonCode = XINPUT_IR_REMOTE_ENTER;
-  else if (strButton.Equals("xbox")) buttonCode = XINPUT_IR_REMOTE_DISPLAY; // same as display
-  else if (strButton.Equals("playlist")) buttonCode = XINPUT_IR_REMOTE_PLAYLIST;
-  else if (strButton.Equals("guide")) buttonCode = XINPUT_IR_REMOTE_GUIDE;
-  else if (strButton.Equals("teletext")) buttonCode = XINPUT_IR_REMOTE_TELETEXT;
-  else if (strButton.Equals("red")) buttonCode = XINPUT_IR_REMOTE_RED;
-  else if (strButton.Equals("green")) buttonCode = XINPUT_IR_REMOTE_GREEN;
-  else if (strButton.Equals("yellow")) buttonCode = XINPUT_IR_REMOTE_YELLOW;
-  else if (strButton.Equals("blue")) buttonCode = XINPUT_IR_REMOTE_BLUE;
-  else if (strButton.Equals("subtitle")) buttonCode = XINPUT_IR_REMOTE_SUBTITLE;
-  else if (strButton.Equals("language")) buttonCode = XINPUT_IR_REMOTE_LANGUAGE;
+  else if (strButton == "power") buttonCode = XINPUT_IR_REMOTE_POWER;
+  else if (strButton == "mytv") buttonCode = XINPUT_IR_REMOTE_MY_TV;
+  else if (strButton == "mymusic") buttonCode = XINPUT_IR_REMOTE_MY_MUSIC;
+  else if (strButton == "mypictures") buttonCode = XINPUT_IR_REMOTE_MY_PICTURES;
+  else if (strButton == "myvideo") buttonCode = XINPUT_IR_REMOTE_MY_VIDEOS;
+  else if (strButton == "record") buttonCode = XINPUT_IR_REMOTE_RECORD;
+  else if (strButton == "start") buttonCode = XINPUT_IR_REMOTE_START;
+  else if (strButton == "volumeplus") buttonCode = XINPUT_IR_REMOTE_VOLUME_PLUS;
+  else if (strButton == "volumeminus") buttonCode = XINPUT_IR_REMOTE_VOLUME_MINUS;
+  else if (strButton == "channelplus") buttonCode = XINPUT_IR_REMOTE_CHANNEL_PLUS;
+  else if (strButton == "channelminus") buttonCode = XINPUT_IR_REMOTE_CHANNEL_MINUS;
+  else if (strButton == "pageplus") buttonCode = XINPUT_IR_REMOTE_CHANNEL_PLUS;
+  else if (strButton == "pageminus") buttonCode = XINPUT_IR_REMOTE_CHANNEL_MINUS;
+  else if (strButton == "mute") buttonCode = XINPUT_IR_REMOTE_MUTE;
+  else if (strButton == "recordedtv") buttonCode = XINPUT_IR_REMOTE_RECORDED_TV;
+  else if (strButton == "guide") buttonCode = XINPUT_IR_REMOTE_GUIDE;
+  else if (strButton == "livetv") buttonCode = XINPUT_IR_REMOTE_LIVE_TV;
+  else if (strButton == "liveradio") buttonCode = XINPUT_IR_REMOTE_LIVE_RADIO;
+  else if (strButton == "epgsearch") buttonCode = XINPUT_IR_REMOTE_EPG_SEARCH;
+  else if (strButton == "star") buttonCode = XINPUT_IR_REMOTE_STAR;
+  else if (strButton == "hash") buttonCode = XINPUT_IR_REMOTE_HASH;
+  else if (strButton == "clear") buttonCode = XINPUT_IR_REMOTE_CLEAR;
+  else if (strButton == "enter") buttonCode = XINPUT_IR_REMOTE_ENTER;
+  else if (strButton == "xbox") buttonCode = XINPUT_IR_REMOTE_DISPLAY; // same as display
+  else if (strButton == "playlist") buttonCode = XINPUT_IR_REMOTE_PLAYLIST;
+  else if (strButton == "guide") buttonCode = XINPUT_IR_REMOTE_GUIDE;
+  else if (strButton == "teletext") buttonCode = XINPUT_IR_REMOTE_TELETEXT;
+  else if (strButton == "red") buttonCode = XINPUT_IR_REMOTE_RED;
+  else if (strButton == "green") buttonCode = XINPUT_IR_REMOTE_GREEN;
+  else if (strButton == "yellow") buttonCode = XINPUT_IR_REMOTE_YELLOW;
+  else if (strButton == "blue") buttonCode = XINPUT_IR_REMOTE_BLUE;
+  else if (strButton == "subtitle") buttonCode = XINPUT_IR_REMOTE_SUBTITLE;
+  else if (strButton == "language") buttonCode = XINPUT_IR_REMOTE_LANGUAGE;
+  else if (strButton == "eject") buttonCode = XINPUT_IR_REMOTE_EJECT;
+  else if (strButton == "print") buttonCode = XINPUT_IR_REMOTE_PRINT;
   else CLog::Log(LOGERROR, "Remote Translator: Can't find button %s", strButton.c_str());
   return buttonCode;
 }
@@ -1372,8 +1384,8 @@ uint32_t CButtonTranslator::TranslateKeyboardButton(TiXmlElement *pButton)
 
   if (!szButton) 
     return 0;
-  CStdString strKey = szButton;
-  if (strKey.Equals("key"))
+  const std::string strKey = szButton;
+  if (strKey == "key")
   {
     std::string strID;
     if (pButton->QueryValueAttribute("id", &strID) == TIXML_SUCCESS)
@@ -1393,7 +1405,7 @@ uint32_t CButtonTranslator::TranslateKeyboardButton(TiXmlElement *pButton)
     button_id = TranslateKeyboardString(szButton);
 
   // Process the ctrl/shift/alt modifiers
-  CStdString strMod;
+  std::string strMod;
   if (pButton->QueryValueAttribute("mod", &strMod) == TIXML_SUCCESS)
   {
     StringUtils::ToLower(strMod);
@@ -1425,11 +1437,11 @@ uint32_t CButtonTranslator::TranslateKeyboardButton(TiXmlElement *pButton)
 uint32_t CButtonTranslator::TranslateAppCommand(const char *szButton)
 {
 #ifdef TARGET_WINDOWS
-  CStdString strAppCommand = szButton;
+  std::string strAppCommand = szButton;
   StringUtils::ToLower(strAppCommand);
 
-  for (int i = 0; i < sizeof(appcommands)/sizeof(appcommands[0]); i++)
-    if (strAppCommand.Equals(appcommands[i].name))
+  for (int i = 0; i < ARRAY_SIZE(appcommands); i++)
+    if (strAppCommand == appcommands[i].name)
       return appcommands[i].action | KEY_APPCOMMAND;
 
   CLog::Log(LOGERROR, "%s: Can't find appcommand %s", __FUNCTION__, szButton);
@@ -1438,18 +1450,40 @@ uint32_t CButtonTranslator::TranslateAppCommand(const char *szButton)
   return 0;
 }
 
-uint32_t CButtonTranslator::TranslateMouseCommand(const char *szButton)
+uint32_t CButtonTranslator::TranslateMouseCommand(TiXmlElement *pButton)
 {
-  CStdString strMouseCommand = szButton;
-  StringUtils::ToLower(strMouseCommand);
+  uint32_t buttonId = 0;
 
-  for (unsigned int i = 0; i < sizeof(mousecommands)/sizeof(mousecommands[0]); i++)
-    if (strMouseCommand.Equals(mousecommands[i].name))
-      return mousecommands[i].action | KEY_MOUSE;
+  if (pButton)
+  {
+    std::string szKey = pButton->ValueStr();
+    if (!szKey.empty())
+    {
+      StringUtils::ToLower(szKey);
+      for (unsigned int i = 0; i < ARRAY_SIZE(mousekeys); i++)
+      {
+        if (szKey == mousekeys[i].name)
+        {
+          buttonId = mousekeys[i].action;
+          break;
+        }
+      }
+      if (!buttonId)
+      {
+        CLog::Log(LOGERROR, "Unknown mouse action (%s), skipping", pButton->Value());
+      }
+      else
+      {
+        int id = 0;
+        if ((pButton->QueryIntAttribute("id", &id) == TIXML_SUCCESS) && id>=0 && id<=4)
+        {
+          buttonId += id;
+        }
+      }
+    }
+  }
 
-  CLog::Log(LOGERROR, "%s: Can't find mouse command %s", __FUNCTION__, szButton);
-
-  return 0;
+  return buttonId;
 }
 
 void CButtonTranslator::Clear()
@@ -1479,7 +1513,7 @@ uint32_t CButtonTranslator::TranslateTouchCommand(TiXmlElement *pButton, CButton
   if (szAction == NULL)
     return ACTION_NONE;
 
-  CStdString strTouchCommand = szButton;
+  std::string strTouchCommand = szButton;
   StringUtils::ToLower(strTouchCommand);
 
   const char *attrVal = pButton->Attribute("direction");
@@ -1487,9 +1521,9 @@ uint32_t CButtonTranslator::TranslateTouchCommand(TiXmlElement *pButton, CButton
     strTouchCommand += attrVal;
 
   uint32_t actionId = ACTION_NONE;
-  for (unsigned int i = 0; i < sizeof(touchcommands)/sizeof(touchcommands[0]); i++)
+  for (unsigned int i = 0; i < ARRAY_SIZE(touchcommands); i++)
   {
-    if (strTouchCommand.Equals(touchcommands[i].name))
+    if (strTouchCommand == touchcommands[i].name)
     {
       actionId = touchcommands[i].action;
       break;

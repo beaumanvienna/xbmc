@@ -35,6 +35,7 @@
 
 #include "XBDateTime.h"
 #include "utils/StdString.h"
+#include "utils/params_check_macros.h"
 
 class StringUtils
 {
@@ -50,10 +51,10 @@ public:
   \param ... variable number of value type arguments
   \return Formatted string
   */
-  static std::string Format(const char *fmt, ...);
-  static std::string FormatV(const char *fmt, va_list args);
-  static std::wstring Format(const wchar_t *fmt, ...);
-  static std::wstring FormatV(const wchar_t *fmt, va_list args);
+  static std::string Format(PRINTF_FORMAT_STRING const char *fmt, ...) PARAM1_PRINTF_FORMAT;
+  static std::string FormatV(PRINTF_FORMAT_STRING const char *fmt, va_list args);
+  static std::wstring Format(PRINTF_FORMAT_STRING const wchar_t *fmt, ...);
+  static std::wstring FormatV(PRINTF_FORMAT_STRING const wchar_t *fmt, va_list args);
   static void ToUpper(std::string &str);
   static void ToUpper(std::wstring &str);
   static void ToLower(std::string &str);
@@ -87,7 +88,7 @@ public:
   static bool EndsWithNoCase(const std::string &str1, const std::string &str2);
   static bool EndsWithNoCase(const std::string &str1, const char *s2);
 
-  static CStdString Join(const std::vector<std::string> &strings, const CStdString& delimiter);
+  static std::string Join(const std::vector<std::string> &strings, const std::string& delimiter);
   /*! \brief Splits the given input string using the given delimiter into separate strings.
 
    If the given input string is empty the result will be an empty array (not
@@ -98,10 +99,11 @@ public:
    \param iMaxStrings (optional) Maximum number of splitted strings
    */
   static std::vector<std::string> Split(const std::string& input, const std::string& delimiter, unsigned int iMaxStrings = 0);
+  static std::vector<std::string> Split(const std::string& input, const char delimiter, size_t iMaxStrings = 0);
   static int FindNumber(const CStdString& strInput, const CStdString &strFind);
   static int64_t AlphaNumericCompare(const wchar_t *left, const wchar_t *right);
   static long TimeStringToSeconds(const CStdString &timeString);
-  static void RemoveCRLF(CStdString& strLine);
+  static void RemoveCRLF(std::string& strLine);
 
   /*! \brief utf8 version of strlen - skips any non-starting bytes in the count, thus returning the number of utf8 characters
    \param s c-string to find the length of.
@@ -162,7 +164,7 @@ public:
   static size_t FindWords(const char *str, const char *wordLowerCase);
   static int FindEndBracket(const CStdString &str, char opener, char closer, int startPos = 0);
   static int DateStringToYYYYMMDD(const CStdString &dateString);
-  static void WordToDigits(CStdString &word);
+  static void WordToDigits(std::string &word);
   static CStdString CreateUUID();
   static bool ValidateUUID(const CStdString &uuid); // NB only validates syntax
   static double CompareFuzzy(const CStdString &left, const CStdString &right);
@@ -188,6 +190,8 @@ public:
    */
   static std::vector<std::string> Tokenize(const std::string& input, const std::string& delimiters);
   static void Tokenize(const std::string& input, std::vector<std::string>& tokens, const std::string& delimiters);
+  static std::vector<std::string> Tokenize(const std::string& input, const char delimiter);
+  static void Tokenize(const std::string& input, std::vector<std::string>& tokens, const char delimiter);
 private:
   static CStdString m_lastUUID;
 };

@@ -22,6 +22,7 @@
 
 #include "PosixDirectory.h"
 #include "utils/AliasShortcutUtils.h"
+#include "utils/CharsetConverter.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
 #include "FileItem.h"
@@ -57,7 +58,9 @@ bool CPosixDirectory::GetDirectory(const CURL& url, CFileItemList &items)
     if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
       continue;
 
-    CFileItemPtr pItem(new CFileItem(entry->d_name));
+    std::string itemLabel(entry->d_name);
+    CCharsetConverter::unknownToUTF8(itemLabel);
+    CFileItemPtr pItem(new CFileItem(itemLabel));
     std::string itemPath(URIUtils::AddFileToFolder(root, entry->d_name));
 
     bool bStat = false;
@@ -73,7 +76,7 @@ bool CPosixDirectory::GetDirectory(const CURL& url, CFileItemList &items)
         bStat = true;
     }
 
-    if (entry->d_type == DT_DIR || (bStat && buffer.st_mode & S_IFDIR))
+    if (entry->d_type == DT_DIR || (bStat && S_ISDIR(buffer.st_mode)))
     {
       pItem->m_bIsFolder = true;
       URIUtils::AddSlashAtEnd(itemPath);
@@ -90,7 +93,7 @@ bool CPosixDirectory::GetDirectory(const CURL& url, CFileItemList &items)
 
     if (!(m_flags & DIR_FLAG_NO_FILE_INFO))
     {
-      if (bStat || stat(pItem->GetPath(), &buffer) == 0)
+      if (bStat || stat(pItem->GetPath().c_str(), &buffer) == 0)
       {
         FILETIME fileTime, localTime;
         TimeTToFileTime(buffer.st_mtime, &fileTime);
@@ -129,8 +132,13 @@ bool CPosixDirectory::Remove(const CURL& url)
 
 bool CPosixDirectory::Exists(const CURL& url)
 {
+  std::string path = url.Get();
+
+  if (IsAliasShortcut(path))
+    TranslateAliasShortcut(path);
+
   struct stat buffer;
-  if (stat(url.Get().c_str(), &buffer) != 0)
+  if (stat(path.c_str(), &buffer) != 0)
     return false;
   return S_ISDIR(buffer.st_mode) ? true : false;
 }

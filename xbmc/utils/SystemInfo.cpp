@@ -37,6 +37,8 @@
 #include "CPUInfo.h"
 #include "utils/TimeUtils.h"
 #include "utils/log.h"
+#include "CompileInfo.h"
+
 #ifdef TARGET_WINDOWS
 #include "dwmapi.h"
 #ifndef WIN32_LEAN_AND_MEAN
@@ -60,6 +62,9 @@
 /* Platform identification */
 #if defined(TARGET_DARWIN)
 #include <Availability.h>
+#include <mach-o/arch.h>
+#include <sys/sysctl.h>
+#include "utils/auto_buffer.h"
 #elif defined(TARGET_ANDROID)
 #include <android/api-level.h>
 #include <sys/system_properties.h>
@@ -257,7 +262,7 @@ const CSysData &CSysInfoJob::GetData() const
   return m_info;
 }
 
-CStdString CSysInfoJob::GetCPUFreqInfo()
+std::string CSysInfoJob::GetCPUFreqInfo()
 {
   double CPUFreq = GetCPUFrequency();
   return StringUtils::Format("%4.2fMHz", CPUFreq);;
@@ -272,7 +277,7 @@ CSysData::INTERNET_STATE CSysInfoJob::GetInternetState()
   return CSysData::DISCONNECTED;
 }
 
-CStdString CSysInfoJob::GetMACAddress()
+std::string CSysInfoJob::GetMACAddress()
 {
 #if defined(HAS_LINUX_NETWORK) || defined(HAS_WIN32_NETWORK)
   CNetworkInterface* iface = g_application.getNetwork().GetFirstConnectedInterface();
@@ -282,12 +287,12 @@ CStdString CSysInfoJob::GetMACAddress()
   return "";
 }
 
-CStdString CSysInfoJob::GetVideoEncoder()
+std::string CSysInfoJob::GetVideoEncoder()
 {
   return "GPU: " + g_Windowing.GetRenderRenderer();
 }
 
-CStdString CSysInfoJob::GetBatteryLevel()
+std::string CSysInfoJob::GetBatteryLevel()
 {
   return StringUtils::Format("%d%%", g_powerManager.BatteryLevel());
 }
@@ -318,9 +323,9 @@ bool CSysInfoJob::SystemUpTime(int iInputMinutes, int &iMinutes, int &iHours, in
   return true;
 }
 
-CStdString CSysInfoJob::GetSystemUpTime(bool bTotalUptime)
+std::string CSysInfoJob::GetSystemUpTime(bool bTotalUptime)
 {
-  CStdString strSystemUptime;
+  std::string strSystemUptime;
   int iInputMinutes, iMinutes,iHours,iDays;
 
   if(bTotalUptime)
@@ -356,7 +361,7 @@ CStdString CSysInfoJob::GetSystemUpTime(bool bTotalUptime)
   return strSystemUptime;
 }
 
-CStdString CSysInfo::TranslateInfo(int info) const
+std::string CSysInfo::TranslateInfo(int info) const
 {
   switch(info)
   {
@@ -429,18 +434,26 @@ bool CSysInfo::Save(TiXmlNode *settings) const
   return true;
 }
 
-bool CSysInfo::GetDiskSpace(const CStdString& drive,int& iTotal, int& iTotalFree, int& iTotalUsed, int& iPercentFree, int& iPercentUsed)
+const std::string& CSysInfo::GetAppName(void)
+{
+  assert(CCompileInfo::GetAppName() != NULL);
+  static const std::string appName(CCompileInfo::GetAppName());
+
+  return appName;
+}
+
+bool CSysInfo::GetDiskSpace(const std::string& drive,int& iTotal, int& iTotalFree, int& iTotalUsed, int& iPercentFree, int& iPercentUsed)
 {
   bool bRet= false;
   ULARGE_INTEGER ULTotal= { { 0 } };
   ULARGE_INTEGER ULTotalFree= { { 0 } };
 
-  if( !drive.empty() && !drive.Equals("*") )
+  if( !drive.empty() && drive != "*" )
   {
 #ifdef TARGET_WINDOWS
-    UINT uidriveType = GetDriveType(( drive + ":\\" ));
+    UINT uidriveType = GetDriveType(( drive + ":\\" ).c_str());
     if(uidriveType != DRIVE_UNKNOWN && uidriveType != DRIVE_NO_ROOT_DIR)
-      bRet= ( 0 != GetDiskFreeSpaceEx( ( drive + ":\\" ), NULL, &ULTotal, &ULTotalFree) );
+      bRet= ( 0 != GetDiskFreeSpaceEx( ( drive + ":\\" ).c_str(), NULL, &ULTotal, &ULTotalFree) );
 #elif defined(TARGET_POSIX)
     bRet = (0 != GetDiskFreeSpaceEx(drive.c_str(), NULL, &ULTotal, &ULTotalFree));
 #endif
@@ -503,27 +516,27 @@ bool CSysInfo::GetDiskSpace(const CStdString& drive,int& iTotal, int& iTotalFree
   return bRet;
 }
 
-CStdString CSysInfo::GetCPUModel()
+std::string CSysInfo::GetCPUModel()
 {
   return "CPU: " + g_cpuInfo.getCPUModel();
 }
 
-CStdString CSysInfo::GetCPUBogoMips()
+std::string CSysInfo::GetCPUBogoMips()
 {
   return "BogoMips: " + g_cpuInfo.getCPUBogoMips();
 }
 
-CStdString CSysInfo::GetCPUHardware()
+std::string CSysInfo::GetCPUHardware()
 {
   return "Hardware: " + g_cpuInfo.getCPUHardware();
 }
 
-CStdString CSysInfo::GetCPURevision()
+std::string CSysInfo::GetCPURevision()
 {
   return "Revision: " + g_cpuInfo.getCPURevision();
 }
 
-CStdString CSysInfo::GetCPUSerial()
+std::string CSysInfo::GetCPUSerial()
 {
   return "Serial: " + g_cpuInfo.getCPUSerial();
 }
@@ -798,6 +811,14 @@ std::string CSysInfo::GetModelName(void)
     modelName.assign(deviceCStr, (propLen > 0 && propLen <= PROP_VALUE_MAX) ? propLen : 0);
 #elif defined(TARGET_DARWIN_IOS)
     modelName = getIosPlatformString();
+#elif defined(TARGET_DARWIN_OSX)
+    size_t nameLen = 0; // 'nameLen' should include terminating null
+    if (sysctlbyname("hw.model", NULL, &nameLen, NULL, NULL) == 0 && nameLen > 1)
+    {
+      XUTILS::auto_buffer buf(nameLen);
+      if (sysctlbyname("hw.model", buf.get(), &nameLen, NULL, NULL) == 0 && nameLen == buf.size())
+        modelName.assign(buf.get(), nameLen - 1); // assign exactly 'nameLen-1' characters to 'modelName'
+    }
 #elif defined(TARGET_WINDOWS)
     HKEY hKey;
     if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"HARDWARE\\DESCRIPTION\\System\\BIOS", 0, KEY_READ, &hKey) == ERROR_SUCCESS)
@@ -889,68 +910,94 @@ CSysInfo::WindowsVersion CSysInfo::GetWindowsVersion()
 
 int CSysInfo::GetKernelBitness(void)
 {
-#ifdef TARGET_WINDOWS
-  SYSTEM_INFO si;
-  GetNativeSystemInfo(&si);
-  if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL || si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_ARM)
-    return 32;
-
-  if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
-    return 64;
-  
-  BOOL isWow64 = FALSE;
-  if (IsWow64Process(GetCurrentProcess(), &isWow64) && isWow64) // fallback
-    return 64;
-
-  return 0; // Can't detect OS
-#elif defined(TARGET_POSIX)
-  struct utsname un;
-  if (uname(&un) == 0)
+  static int kernelBitness = -1;
+  if (kernelBitness == -1)
   {
-    std::string machine(un.machine);
-    if (machine == "x86_64" || machine == "amd64" || machine == "arm64" || machine == "aarch64" || machine == "ppc64" ||
-        machine == "ia64" || machine == "mips64")
-      return 64;
-    return 32;
-  }
-  return 0; // can't detect
-#else
-  return 0; // unknown
+#ifdef TARGET_WINDOWS
+    SYSTEM_INFO si;
+    GetNativeSystemInfo(&si);
+    if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL || si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_ARM)
+      kernelBitness = 32;
+    else if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
+      kernelBitness = 64;
+    else
+    {
+      BOOL isWow64 = FALSE;
+      if (IsWow64Process(GetCurrentProcess(), &isWow64) && isWow64) // fallback
+        kernelBitness = 64;
+    }
+#elif defined(TARGET_DARWIN_IOS)
+    // Note: OS X return x86 CPU type without CPU_ARCH_ABI64 flag
+    const NXArchInfo* archInfo = NXGetLocalArchInfo();
+    if (archInfo)
+      kernelBitness = ((archInfo->cputype & CPU_ARCH_ABI64) != 0) ? 64 : 32;
+#elif defined(TARGET_POSIX)
+    struct utsname un;
+    if (uname(&un) == 0)
+    {
+      std::string machine(un.machine);
+      if (machine == "x86_64" || machine == "amd64" || machine == "arm64" || machine == "aarch64" || machine == "ppc64" ||
+          machine == "ia64" || machine == "mips64")
+        kernelBitness = 64;
+      else
+        kernelBitness = 32;
+    }
 #endif
+    if (kernelBitness == -1)
+      kernelBitness = 0; // can't detect
+  }
+
+  return kernelBitness;
 }
 
-std::string CSysInfo::GetKernelCpuFamily(void)
+const std::string& CSysInfo::GetKernelCpuFamily(void)
 {
-#ifdef TARGET_WINDOWS
-  SYSTEM_INFO si;
-  GetNativeSystemInfo(&si);
-  if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL ||
-      si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
-    return "x86";
-
-  if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_ARM)
-    return "ARM";
-#elif defined(TARGET_POSIX)
-  struct utsname un;
-  if (uname(&un) == 0)
+  static std::string kernelCpuFamily;
+  if (kernelCpuFamily.empty())
   {
-    std::string machine(un.machine);
-    if (machine.compare(0, 3, "arm", 3) == 0)
-      return "ARM";
-    if (machine.compare(0, 4, "mips", 4) == 0)
-      return "MIPS";
-    if (machine.compare(0, 4, "i686", 4) == 0 || machine == "i386" || machine == "amd64" ||  machine.compare(0, 3, "x86", 3) == 0)
-      return "x86";
-    if (machine.compare(0, 3, "ppc", 3) == 0 || machine.compare(0, 5, "power", 5) == 0)
-      return "PowerPC";
-// ios saves the dev id like AppleTV2,1 in the machine
-// field - all ios devices are ARM - force this here...
-#if defined(TARGET_DARWIN_IOS)
-    return "ARM";
+#ifdef TARGET_WINDOWS
+    SYSTEM_INFO si;
+    GetNativeSystemInfo(&si);
+    if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL ||
+        si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
+        kernelCpuFamily = "x86";
+    else if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_ARM)
+      kernelCpuFamily = "ARM";
+#elif defined(TARGET_DARWIN)
+    const NXArchInfo* archInfo = NXGetLocalArchInfo();
+    if (archInfo)
+    {
+      const cpu_type_t cpuType = (archInfo->cputype & ~CPU_ARCH_ABI64); // get CPU family without 64-bit ABI flag
+      if (cpuType == CPU_TYPE_I386)
+        kernelCpuFamily = "x86";
+      else if (cpuType == CPU_TYPE_ARM)
+        kernelCpuFamily = "ARM";
+      else if (cpuType == CPU_TYPE_POWERPC)
+        kernelCpuFamily = "PowerPC";
+#ifdef CPU_TYPE_MIPS
+      else if (cpuType == CPU_TYPE_MIPS)
+        kernelCpuFamily = "MIPS";
+#endif // CPU_TYPE_MIPS
+    }
+#elif defined(TARGET_POSIX)
+    struct utsname un;
+    if (uname(&un) == 0)
+    {
+      std::string machine(un.machine);
+      if (machine.compare(0, 3, "arm", 3) == 0)
+        kernelCpuFamily = "ARM";
+      else if (machine.compare(0, 4, "mips", 4) == 0)
+        kernelCpuFamily = "MIPS";
+      else if (machine.compare(0, 4, "i686", 4) == 0 || machine == "i386" || machine == "amd64" ||  machine.compare(0, 3, "x86", 3) == 0)
+        kernelCpuFamily = "x86";
+      else if (machine.compare(0, 3, "ppc", 3) == 0 || machine.compare(0, 5, "power", 5) == 0)
+        kernelCpuFamily = "PowerPC";
+    }
 #endif
+    if (kernelCpuFamily.empty())
+      kernelCpuFamily = "unknown CPU family";
   }
-#endif
-  return "unknown CPU family";
+  return kernelCpuFamily;
 }
 
 int CSysInfo::GetXbmcBitness(void)
@@ -974,16 +1021,16 @@ bool CSysInfo::HasInternet()
   return (m_info.internetState = CSysInfoJob::GetInternetState()) == CSysData::CONNECTED;
 }
 
-CStdString CSysInfo::GetHddSpaceInfo(int drive, bool shortText)
+std::string CSysInfo::GetHddSpaceInfo(int drive, bool shortText)
 {
  int percent;
  return GetHddSpaceInfo( percent, drive, shortText);
 }
 
-CStdString CSysInfo::GetHddSpaceInfo(int& percent, int drive, bool shortText)
+std::string CSysInfo::GetHddSpaceInfo(int& percent, int drive, bool shortText)
 {
   int total, totalFree, totalUsed, percentFree, percentused;
-  CStdString strRet;
+  std::string strRet;
   percent = 0;
   if (g_sysinfo.GetDiskSpace("", total, totalFree, totalUsed, percentFree, percentused))
   {
@@ -1037,7 +1084,7 @@ std::string CSysInfo::GetUserAgent()
   if (!result.empty())
     return result;
 
-  result = "XBMC/" + g_infoManager.GetLabel(SYSTEM_BUILD_VERSION_SHORT) + " (";
+  result = GetAppName() + "/" + (std::string)g_infoManager.GetLabel(SYSTEM_BUILD_VERSION_SHORT) + " (";
 #if defined(TARGET_WINDOWS)
   result += GetKernelName() + " " + GetKernelVersion();
   BOOL bIsWow = FALSE;
@@ -1124,10 +1171,19 @@ std::string CSysInfo::GetUserAgent()
   result += "Unknown";
 #endif
   result += ")";
-  // add fork ID here in form:
-  // result += " XBMC_FORK_" + "forkname" + "/" + "1.0"; // default fork number is '1.0'
+
+  if (GetAppName() != "Kodi")
+    result += "Kodi_Fork_" + GetAppName() + "/1.0"; // default fork number is '1.0', replace it with actual number if necessary
+
+#ifdef TARGET_LINUX
+  // Add distribution name
+  std::string linuxOSName(GetOsName(true));
+  if (!linuxOSName.empty())
+    result += " " + linuxOSName + "/" + GetOsVersion();
+#endif
+
 #ifdef TARGET_RASPBERRY_PI
-  result += " XBMC_HW_RaspberryPi/1.0";
+  result += " HW_RaspberryPi/1.0";
 #elif defined (TARGET_DARWIN_IOS)
   std::string iDevVer;
   if (iDevStrDigit == std::string::npos)
@@ -1135,11 +1191,11 @@ std::string CSysInfo::GetUserAgent()
   else
     iDevVer.assign(iDevStr, iDevStrDigit, std::string::npos);
   StringUtils::Replace(iDevVer, ',', '.');
-  result += " XBMC_HW_" + iDev + "/" + iDevVer;
+  result += " HW_" + iDev + "/" + iDevVer;
 #endif
   // add more device IDs here if needed. 
   // keep only one device ID in result! Form:
-  // result += " XBMC_HW_" + "deviceID" + "/" + "1.0"; // '1.0' if device has no version
+  // result += " HW_" + "deviceID" + "/" + "1.0"; // '1.0' if device has no version
 
 #if defined(TARGET_ANDROID)
   // Android has no CPU string by default, so add it as additional parameter
@@ -1148,11 +1204,11 @@ std::string CSysInfo::GetUserAgent()
   {
     std::string cpuStr(un1.machine);
     StringUtils::Replace(cpuStr, ' ', '_');
-    result += " XBMC_CPU/" + cpuStr;
+    result += " Sys_CPU/" + cpuStr;
   }
 #endif
 
-  result += " XBMC_BITNESS/" + StringUtils::Format("%d", GetXbmcBitness());
+  result += " App_Bitness/" + StringUtils::Format("%d", GetXbmcBitness());
 
   std::string fullVer(g_infoManager.GetLabel(SYSTEM_BUILD_VERSION));
   StringUtils::Replace(fullVer, ' ', '-');

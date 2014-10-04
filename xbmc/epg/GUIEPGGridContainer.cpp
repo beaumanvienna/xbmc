@@ -26,6 +26,7 @@
 #include <tinyxml.h>
 #include "utils/log.h"
 #include "utils/MathUtils.h"
+#include "utils/StringUtils.h"
 #include "utils/Variant.h"
 #include "threads/SystemClock.h"
 #include "GUIInfoManager.h"
@@ -1065,12 +1066,12 @@ void CGUIEPGGridContainer::OnRight()
   CGUIControl::OnRight();
 }
 
-void CGUIEPGGridContainer::SetChannel(const CStdString &channel)
+void CGUIEPGGridContainer::SetChannel(const std::string &channel)
 {
   int iChannelIndex(-1);
   for (unsigned int iIndex = 0; iIndex < m_channelItems.size(); iIndex++)
   {
-    CStdString strPath = m_channelItems[iIndex]->GetProperty("path").asString(StringUtils::EmptyString);
+    std::string strPath = m_channelItems[iIndex]->GetProperty("path").asString();
     if (strPath == channel)
     {
       iChannelIndex = iIndex;
@@ -1273,6 +1274,18 @@ bool CGUIEPGGridContainer::OnMouseWheel(char wheel, const CPoint &point)
   return true;
 }
 
+CPVRChannel* CGUIEPGGridContainer::GetChannel(int iIndex)
+{
+  if (iIndex >= 0 && iIndex < m_channelItems.size())
+  {
+    CFileItemPtr fileItem = boost::static_pointer_cast<CFileItem>(m_channelItems[iIndex]);
+    if (fileItem->HasPVRChannelInfoTag())
+      return fileItem->GetPVRChannelInfoTag();
+  }
+  
+  return NULL;
+}
+
 void CGUIEPGGridContainer::SetSelectedChannel(int channelIndex)
 {
   if (channelIndex < 0)
@@ -1337,9 +1350,9 @@ CGUIListItemPtr CGUIEPGGridContainer::GetListItem(int offset, unsigned int flag)
   return CGUIListItemPtr();
 }
 
-CStdString CGUIEPGGridContainer::GetLabel(int info) const
+std::string CGUIEPGGridContainer::GetLabel(int info) const
 {
-  CStdString label;
+  std::string label;
   switch (info)
   {
   case CONTAINER_NUM_PAGES:
@@ -1600,9 +1613,9 @@ void CGUIEPGGridContainer::LoadLayout(TiXmlElement *layout)
   }
 }
 
-CStdString CGUIEPGGridContainer::GetDescription() const
+std::string CGUIEPGGridContainer::GetDescription() const
 {
-  CStdString strLabel;
+  std::string strLabel;
   int item = GetSelectedItem();
   if (item >= 0 && item < (int)m_programmeItems.size())
   {

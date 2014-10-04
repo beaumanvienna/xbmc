@@ -217,9 +217,6 @@
     <Filter Include="network\websocket">
       <UniqueIdentifier>{88e84682-dede-4bdf-9e33-a8023dd5ac78}</UniqueIdentifier>
     </Filter>
-    <Filter Include="filesystem\windows">
-      <UniqueIdentifier>{1cc693eb-11ad-4f53-8640-198d5ab9bcc8}</UniqueIdentifier>
-    </Filter>
     <Filter Include="network\httprequesthandler">
       <UniqueIdentifier>{9029e610-aa5a-4414-9e96-1d69f03b3bd8}</UniqueIdentifier>
     </Filter>
@@ -319,6 +316,9 @@
     <Filter Include="filesystem\win32">
       <UniqueIdentifier>{901e970d-b3b4-463a-93ab-9af30c6a1139}</UniqueIdentifier>
     </Filter>
+    <Filter Include="utils\win32">
+      <UniqueIdentifier>{3adbba6a-6fbf-4192-b215-108d94bde1e0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\xbmc\win32\pch.cpp">
@@ -363,9 +363,6 @@
     <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDMessageQueue.cpp">
       <Filter>cores\dvdplayer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDMessageTracker.cpp">
-      <Filter>cores\dvdplayer</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDOverlayContainer.cpp">
       <Filter>cores\dvdplayer</Filter>
     </ClCompile>
@@ -405,9 +402,6 @@
     <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Audio\DVDAudioCodecFFmpeg.cpp">
       <Filter>cores\dvdplayer\DVDCodecs\Audio</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Video\DVDVideoCodecCrystalHD.cpp">
-      <Filter>cores\dvdplayer\DVDCodecs\Video</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Video\DVDVideoCodecFFmpeg.cpp">
       <Filter>cores\dvdplayer\DVDCodecs\Video</Filter>
     </ClCompile>
@@ -418,9 +412,6 @@
       <Filter>cores\dvdplayer\DVDCodecs\Video</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Video\DXVA.cpp">
-      <Filter>cores\dvdplayer\DVDCodecs\Video</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Video\DXVAHD.cpp">
       <Filter>cores\dvdplayer\DVDCodecs\Video</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Overlay\DVDOverlayCodec.cpp">
@@ -627,6 +618,12 @@
     <ClCompile Include="..\..\xbmc\cores\VideoRenderers\WinRenderer.cpp">
       <Filter>cores\VideoRenderers</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\xbmc\cores\VideoRenderers\DXVA.cpp">
+      <Filter>cores\VideoRenderers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\cores\VideoRenderers\DXVAHD.cpp">
+      <Filter>cores\VideoRenderers</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\xbmc\cores\VideoRenderers\VideoShaders\ConvolutionKernels.cpp">
       <Filter>cores\VideoRenderers\Shaders</Filter>
     </ClCompile>
@@ -756,6 +753,9 @@
     <ClCompile Include="..\..\xbmc\addons\AddonStatusHandler.cpp">
       <Filter>addons</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\xbmc\addons\AudioEncoder.cpp">
+      <Filter>addons</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\xbmc\addons\Scraper.cpp">
       <Filter>addons</Filter>
     </ClCompile>
@@ -773,9 +773,6 @@
     </ClCompile>
     <ClCompile Include="..\..\xbmc\addons\PluginSource.cpp">
       <Filter>addons</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Video\CrystalHD.cpp">
-      <Filter>cores\dvdplayer\DVDCodecs\Video</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\cores\VideoRenderers\VideoShaders\WinVideoFilter.cpp">
       <Filter>cores\VideoRenderers\Shaders</Filter>
@@ -856,18 +853,6 @@
       <Filter>cdrip</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\cdrip\EncoderFFmpeg.cpp">
-      <Filter>cdrip</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\xbmc\cdrip\EncoderFlac.cpp">
-      <Filter>cdrip</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\xbmc\cdrip\EncoderLame.cpp">
-      <Filter>cdrip</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\xbmc\cdrip\EncoderVorbis.cpp">
-      <Filter>cdrip</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\xbmc\cdrip\EncoderWav.cpp">
       <Filter>cdrip</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\addons\GUIDialogAddonInfo.cpp">
@@ -1148,6 +1133,9 @@
       <Filter>guilib</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\input\ButtonTranslator.cpp">
+      <Filter>input</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\input\KeyboardLayout.cpp">
       <Filter>input</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\input\KeyboardLayoutConfiguration.cpp">
@@ -1492,6 +1480,9 @@
     <ClCompile Include="..\..\xbmc\utils\RssReader.cpp">
       <Filter>utils</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\xbmc\utils\SaveFileStateJob.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\xbmc\utils\ScraperParser.cpp">
       <Filter>utils</Filter>
     </ClCompile>
@@ -1711,7 +1702,7 @@
     <ClCompile Include="..\..\xbmc\win32\stat_utf8.cpp">
       <Filter>win32</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\xbmc\pvr\windows\GUIWindowPVR.cpp">
+    <ClCompile Include="..\..\xbmc\pvr\windows\GUIWindowPVRBase.cpp">
       <Filter>pvr\windows</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\pvr\timers\PVRTimerInfoTag.cpp">
@@ -1790,9 +1781,6 @@
       <Filter>pvr\windows</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\pvr\windows\GUIWindowPVRChannels.cpp">
-      <Filter>pvr\windows</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\xbmc\pvr\windows\GUIWindowPVRCommon.cpp">
       <Filter>pvr\windows</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\pvr\windows\GUIWindowPVRGuide.cpp">
@@ -1963,12 +1951,6 @@
     <ClCompile Include="..\..\xbmc\network\websocket\WebSocketV13.cpp">
       <Filter>network\websocket</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\xbmc\filesystem\windows\WINFileSMB.cpp">
-      <Filter>filesystem\windows</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\xbmc\filesystem\windows\WINSMBDirectory.cpp">
-      <Filter>filesystem\windows</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\xbmc\interfaces\json-rpc\GUIOperations.cpp">
       <Filter>interfaces\json-rpc</Filter>
     </ClCompile>
@@ -2045,9 +2027,6 @@
       <Filter>filesystem</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\filesystem\FTPParse.cpp">
-      <Filter>filesystem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\xbmc\filesystem\HDFile.cpp">
       <Filter>filesystem</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\filesystem\HDHomeRunDirectory.cpp">
@@ -2951,7 +2930,6 @@
     <ClCompile Include="..\..\xbmc\interfaces\json-rpc\ProfilesOperations.cpp">
       <Filter>interfaces\json-rpc</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\xbmc\GitRevision.cpp" />
     <ClCompile Include="..\..\xbmc\cores\AudioEngine\Engines\ActiveAE\ActiveAE.cpp">
       <Filter>cores\AudioEngine\Engines\ActiveAE</Filter>
     </ClCompile>
@@ -3071,6 +3049,28 @@
     <ClCompile Include="..\..\xbmc\filesystem\win32\Win32Directory.cpp">
       <Filter>filesystem\win32</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\xbmc\CompileInfo.cpp" />
+    <ClCompile Include="..\..\xbmc\utils\auto_buffer.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\filesystem\win32\Win32SMBDirectory.cpp">
+      <Filter>filesystem\win32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\utils\win32\Win32InterfaceForCLog.cpp">
+      <Filter>utils\win32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\utils\win32\Win32Log.cpp">
+      <Filter>utils\win32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\filesystem\win32\Win32File.cpp">
+      <Filter>filesystem\win32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\filesystem\win32\Win32SMBFile.cpp">
+      <Filter>filesystem\win32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\utils\MarkWatchedJob.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\xbmc\win32\pch.h">
@@ -3090,9 +3090,6 @@
     </ClInclude>
     <ClInclude Include="..\..\xbmc\cores\IPlayer.h">
       <Filter>cores</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\dvdplayer\dvd_config.h">
-      <Filter>cores\dvdplayer</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDAudio.h">
       <Filter>cores\dvdplayer</Filter>
@@ -3116,9 +3113,6 @@
       <Filter>cores\dvdplayer</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDMessageQueue.h">
-      <Filter>cores\dvdplayer</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDMessageTracker.h">
       <Filter>cores\dvdplayer</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDOverlayContainer.h">
@@ -3175,9 +3169,6 @@
     <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Video\DVDVideoCodec.h">
       <Filter>cores\dvdplayer\DVDCodecs\Video</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Video\DVDVideoCodecCrystalHD.h">
-      <Filter>cores\dvdplayer\DVDCodecs\Video</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Video\DVDVideoCodecFFmpeg.h">
       <Filter>cores\dvdplayer\DVDCodecs\Video</Filter>
     </ClInclude>
@@ -3188,9 +3179,6 @@
       <Filter>cores\dvdplayer\DVDCodecs\Video</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Video\DXVA.h">
-      <Filter>cores\dvdplayer\DVDCodecs\Video</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Video\DXVAHD.h">
       <Filter>cores\dvdplayer\DVDCodecs\Video</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Overlay\DVDOverlay.h">
@@ -3502,6 +3490,12 @@
     <ClInclude Include="..\..\xbmc\cores\VideoRenderers\WinRenderer.h">
       <Filter>cores\VideoRenderers</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\xbmc\cores\VideoRenderers\DXVA.h">
+      <Filter>cores\VideoRenderers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\cores\VideoRenderers\DXVAHD.h">
+      <Filter>cores\VideoRenderers</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\xbmc\cores\VideoRenderers\VideoShaders\ConvolutionKernels.h">
       <Filter>cores\VideoRenderers\Shaders</Filter>
     </ClInclude>
@@ -3637,6 +3631,9 @@
     <ClInclude Include="..\..\xbmc\addons\AddonStatusHandler.h">
       <Filter>addons</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\xbmc\addons\AudioEncoder.h">
+      <Filter>addons</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\xbmc\addons\DllAddon.h">
       <Filter>addons</Filter>
     </ClInclude>
@@ -3658,14 +3655,8 @@
     <ClInclude Include="..\..\xbmc\addons\Skin.h">
       <Filter>addons</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cdrip\DllFlacEnc.h">
-      <Filter>cores\paplayer</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\xbmc\addons\PluginSource.h">
       <Filter>addons</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Video\CrystalHD.h">
-      <Filter>cores\dvdplayer\DVDCodecs\Video</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\cores\VideoRenderers\VideoShaders\WinVideoFilter.h">
       <Filter>cores\VideoRenderers\Shaders</Filter>
@@ -3736,40 +3727,16 @@
     <ClInclude Include="..\..\xbmc\music\Song.h">
       <Filter>music</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cdrip\EncoderWav.h">
-      <Filter>cdrip</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\xbmc\cdrip\CDDARipJob.h">
       <Filter>cdrip</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\cdrip\CDDARipper.h">
       <Filter>cdrip</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cdrip\DllLameenc.h">
-      <Filter>cdrip</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\cdrip\DllOgg.h">
-      <Filter>cdrip</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\cdrip\DllVorbis.h">
-      <Filter>cdrip</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\cdrip\DllVorbisEnc.h">
-      <Filter>cdrip</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\xbmc\cdrip\Encoder.h">
       <Filter>cdrip</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\cdrip\EncoderFFmpeg.h">
-      <Filter>cdrip</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\cdrip\EncoderFlac.h">
-      <Filter>cdrip</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\cdrip\EncoderLame.h">
-      <Filter>cdrip</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\cdrip\EncoderVorbis.h">
       <Filter>cdrip</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\addons\DllLibCPluff.h">
@@ -4075,6 +4042,9 @@
       <Filter>guilib</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\input\ButtonTranslator.h">
+      <Filter>input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\input\KeyboardLayout.h">
       <Filter>input</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\input\KeyboardLayoutConfiguration.h">
@@ -4714,7 +4684,7 @@
       <Filter>win32</Filter>
     </ClInclude>
     <ClInclude Include="..\..\lib\ffmpeg\include-xbmc-win32\libavutil\avconfig.h" />
-    <ClInclude Include="..\..\xbmc\pvr\windows\GUIWindowPVR.h">
+    <ClInclude Include="..\..\xbmc\pvr\windows\GUIWindowPVRBase.h">
       <Filter>pvr\windows</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\pvr\timers\PVRTimers.h">
@@ -4796,9 +4766,6 @@
       <Filter>pvr\windows</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\pvr\windows\GUIWindowPVRChannels.h">
-      <Filter>pvr\windows</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\pvr\windows\GUIWindowPVRCommon.h">
       <Filter>pvr\windows</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\pvr\windows\GUIWindowPVRGuide.h">
@@ -5021,9 +4988,6 @@
       <Filter>filesystem</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\filesystem\FTPParse.h">
-      <Filter>filesystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\filesystem\HDFile.h">
       <Filter>filesystem</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\filesystem\HDHomeRunDirectory.h">
@@ -5266,12 +5230,6 @@
     </ClInclude>
     <ClInclude Include="..\..\xbmc\network\websocket\WebSocketV13.h">
       <Filter>network\websocket</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\filesystem\windows\WINFileSMB.h">
-      <Filter>filesystem\windows</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\filesystem\windows\WINSMBDirectory.h">
-      <Filter>filesystem\windows</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\interfaces\json-rpc\JSONRPCUtils.h">
       <Filter>interfaces\json-rpc</Filter>
@@ -6021,6 +5979,31 @@
     <ClInclude Include="..\..\xbmc\filesystem\win32\Win32Directory.h">
       <Filter>filesystem\win32</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\xbmc\CompileInfo.h" />
+    <ClInclude Include="..\..\xbmc\utils\auto_buffer.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\filesystem\win32\Win32SMBDirectory.h">
+      <Filter>filesystem\win32</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\utils\params_check_macros.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\utils\win32\Win32InterfaceForCLog.h">
+      <Filter>utils\win32</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\utils\win32\Win32Log.h">
+      <Filter>utils\win32</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\filesystem\win32\Win32File.h">
+      <Filter>filesystem\win32</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\filesystem\win32\Win32SMBFile.h">
+      <Filter>filesystem\win32</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\utils\MarkWatchedJob.h">
+      <Filter>utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\..\xbmc\win32\XBMC_PC.rc">
@@ -6059,6 +6042,7 @@
     <CustomBuild Include="..\..\xbmc\interfaces\json-rpc\schema\license.txt">
       <Filter>interfaces\json-rpc\schema</Filter>
     </CustomBuild>
+    <CustomBuild Include="..\..\version.txt" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\xbmc\interfaces\swig\ControlListAddItemMethods.i">

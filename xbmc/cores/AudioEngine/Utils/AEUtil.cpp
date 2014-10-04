@@ -21,7 +21,6 @@
   #define __STDC_LIMIT_MACROS
 #endif
 
-#include "utils/StdString.h"
 #include "AEUtil.h"
 #include "utils/log.h"
 #include "utils/TimeUtils.h"
@@ -154,6 +153,8 @@ const unsigned int CAEUtil::DataFormatToDitherBits(const enum AEDataFormat dataF
 {
   if (dataFormat == AE_FMT_S24NE4MSB)
     return 8;
+  if (dataFormat == AE_FMT_S24NE3)
+    return -8;
   else
     return 0;
 }
@@ -500,7 +501,7 @@ void CAEUtil::FloatRand4(const float min, const float max, float result[4], __m1
     const float factor = delta / (float)INT32_MAX;
 
     /* cant return sseresult if we are not using SSE intrinsics */
-    ASSERT(result && !sseresult);
+    assert(result && !sseresult);
 
     result[0] = ((float)(m_seed = (214013 * m_seed + 2531011)) * factor) - delta;
     result[1] = ((float)(m_seed = (214013 * m_seed + 2531011)) * factor) - delta;

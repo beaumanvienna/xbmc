@@ -38,6 +38,12 @@ namespace EPG
 {
   #define g_EpgContainer CEpgContainer::Get()
 
+  struct SUpdateRequest
+  {
+    int clientID;
+    unsigned int channelID;
+  };
+
   class CEpgContainer : public Observer,
                         public Observable,
                         public ISettingCallback,
@@ -189,7 +195,7 @@ namespace EPG
      * @param iMax The maximum position.
      * @param strText The text to display.
      */
-    virtual void UpdateProgressDialog(int iCurrent, int iMax, const CStdString &strText);
+    virtual void UpdateProgressDialog(int iCurrent, int iMax, const std::string &strText);
 
     /*!
      * @return True to not to store EPG entries in the database.
@@ -227,6 +233,11 @@ namespace EPG
 
     bool PersistTables(void);
 
+    /*!
+     * @brief client can trigger an update request for a channel
+     */
+    void UpdateRequest(int clientID, unsigned int channelID);
+
   protected:
     /*!
      * @brief Load the EPG settings.
@@ -262,7 +273,11 @@ namespace EPG
      */
     void LoadFromDB(void);
 
-    void InsertFromDatabase(int iEpgID, const CStdString &strName, const CStdString &strScraperName);
+    void InsertFromDatabase(int iEpgID, const std::string &strName, const std::string &strScraperName);
+
+    typedef std::map<unsigned int, CEpg*> EPGMAP;
+    typedef EPGMAP::iterator              EPGMAP_ITR;
+    typedef EPGMAP::const_iterator        EPGMAP_CITR;
 
     CEpgDatabase m_database;           /*!< the EPG database */
 
@@ -285,11 +300,14 @@ namespace EPG
     time_t       m_iNextEpgUpdate;         /*!< the time the EPG will be updated */
     time_t       m_iNextEpgActiveTagCheck; /*!< the time the EPG will be checked for active tag updates */
     unsigned int m_iNextEpgId;             /*!< the next epg ID that will be given to a new table when the db isn't being used */
-    std::map<unsigned int, CEpg*> m_epgs;  /*!< the EPGs in this container */
+    EPGMAP       m_epgs;                   /*!< the EPGs in this container */
     //@}
 
     CGUIDialogProgressBarHandle *  m_progressHandle; /*!< the progress dialog that is visible when updating the first time */
     CCriticalSection               m_critSection;    /*!< a critical section for changes to this container */
     CEvent                         m_updateEvent;    /*!< trigger when an update finishes */
+
+    std::list<SUpdateRequest> m_updateRequests; /*!< list of update requests triggered by addon*/
+    CCriticalSection m_updateRequestsLock;      /*!< protect update requests*/
   };
 }

@@ -158,7 +158,7 @@ int CMusicInfoTag::GetDiscNumber() const
   return (m_iTrack >> 16);
 }
 
-int CMusicInfoTag::GetTrackAndDiskNumber() const
+int CMusicInfoTag::GetTrackAndDiscNumber() const
 {
   return m_iTrack;
 }
@@ -374,14 +374,14 @@ void CMusicInfoTag::SetTrackNumber(int iTrack)
   m_iTrack = (m_iTrack & 0xffff0000) | (iTrack & 0xffff);
 }
 
-void CMusicInfoTag::SetPartOfSet(int iPartOfSet)
+void CMusicInfoTag::SetDiscNumber(int iDiscNumber)
 {
-  m_iTrack = (m_iTrack & 0xffff) | (iPartOfSet << 16);
+  m_iTrack = (m_iTrack & 0xffff) | (iDiscNumber << 16);
 }
 
-void CMusicInfoTag::SetTrackAndDiskNumber(int iTrackAndDisc)
+void CMusicInfoTag::SetTrackAndDiscNumber(int iTrackAndDisc)
 {
-  m_iTrack=iTrackAndDisc;
+  m_iTrack = iTrackAndDisc;
 }
 
 void CMusicInfoTag::SetDuration(int iSec)
@@ -598,7 +598,7 @@ void CMusicInfoTag::Serialize(CVariant& value) const
   value["comment"] = m_strComment;
   value["rating"] = (int)(m_rating - '0');
   value["playcount"] = m_iTimesPlayed;
-  value["lastplayed"] = m_lastPlayed.IsValid() ? m_lastPlayed.GetAsDBDateTime() : StringUtils::EmptyString;
+  value["lastplayed"] = m_lastPlayed.IsValid() ? m_lastPlayed.GetAsDBDateTime() : StringUtils::Empty;
   value["lyrics"] = m_strLyrics;
   value["albumid"] = m_iAlbumId;
   value["compilationartist"] = m_bCompilation;
@@ -626,7 +626,7 @@ void CMusicInfoTag::ToSortable(SortItem& sortable, Field field) const
   case FieldComment:     sortable[FieldComment] = m_strComment; break;
   case FieldRating:      sortable[FieldRating] = (float)(m_rating - '0'); break;
   case FieldPlaycount:   sortable[FieldPlaycount] = m_iTimesPlayed; break;
-  case FieldLastPlayed:  sortable[FieldLastPlayed] = m_lastPlayed.IsValid() ? m_lastPlayed.GetAsDBDateTime() : StringUtils::EmptyString; break;
+  case FieldLastPlayed:  sortable[FieldLastPlayed] = m_lastPlayed.IsValid() ? m_lastPlayed.GetAsDBDateTime() : StringUtils::Empty; break;
   case FieldListeners:   sortable[FieldListeners] = m_listeners; break;
   case FieldId:          sortable[FieldId] = (int64_t)m_iDbId; break;
   default: break;

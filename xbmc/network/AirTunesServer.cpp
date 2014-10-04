@@ -35,7 +35,6 @@
 #ifdef HAS_AIRTUNES
 
 #include "utils/log.h"
-#include "utils/StdString.h"
 #include "network/Zeroconf.h"
 #include "ApplicationMessenger.h"
 #include "filesystem/PipeFile.h"
@@ -64,7 +63,7 @@ using namespace ANNOUNCEMENT;
 
 DllLibShairplay *CAirTunesServer::m_pLibShairplay = NULL;
 CAirTunesServer *CAirTunesServer::ServerInstance = NULL;
-CStdString CAirTunesServer::m_macAddress;
+std::string CAirTunesServer::m_macAddress;
 std::string CAirTunesServer::m_metadata[3];
 CCriticalSection CAirTunesServer::m_metadataLock;
 bool CAirTunesServer::m_streamStarted = false;
@@ -87,6 +86,19 @@ std::map<std::string, std::string> decodeDMAP(const char *buffer, unsigned int s
     result[tag] = content;
   }
   return result;
+}
+
+void CAirTunesServer::ResetMetadata()
+{
+  CSingleLock lock(m_metadataLock);
+
+  XFILE::CFile::Delete(TMP_COVERART_PATH);
+  RefreshCoverArt();
+
+  m_metadata[0] = "";
+  m_metadata[1] = "AirPlay";
+  m_metadata[2] = "";
+  RefreshMetadata();
 }
 
 void CAirTunesServer::RefreshMetadata()
@@ -231,6 +243,11 @@ void* CAirTunesServer::AudioOutputFunctions::audio_init(void *cls, int bits, int
 
   CApplicationMessenger::Get().PlayFile(item);
 
+  // Not all airplay streams will provide metadata (e.g. if using mirroring,
+  // no metadata will be sent).  If there *is* metadata, it will be received
+  // in a later call to audio_set_metadata/audio_set_coverart.
+  ResetMetadata();
+
   return session;//session
 }
 
@@ -262,12 +279,6 @@ void  CAirTunesServer::AudioOutputFunctions::audio_process(void *cls, void *sess
 
     sentBytes += n;
   }
-}
-
-void  CAirTunesServer::AudioOutputFunctions::audio_flush(void *cls, void *session)
-{
-  XFILE::CPipeFile *pipe=(XFILE::CPipeFile *)cls;
-  pipe->Flush();
 }
 
 void  CAirTunesServer::AudioOutputFunctions::audio_destroy(void *cls, void *session)
@@ -330,10 +341,10 @@ void shairplay_log(void *cls, int level, const char *msg)
     CLog::Log(xbmcLevel, "AIRTUNES: %s", msg);
 }
 
-bool CAirTunesServer::StartServer(int port, bool nonlocal, bool usePassword, const CStdString &password/*=""*/)
+bool CAirTunesServer::StartServer(int port, bool nonlocal, bool usePassword, const std::string &password/*=""*/)
 {
   bool success = false;
-  CStdString pw = password;
+  std::string pw = password;
   CNetworkInterface *net = g_application.getNetwork().GetFirstConnectedInterface();
   StopServer(true);
 
@@ -343,7 +354,7 @@ bool CAirTunesServer::StartServer(int port, bool nonlocal, bool usePassword, con
     StringUtils::Replace(m_macAddress, ":","");
     while (m_macAddress.size() < 12)
     {
-      m_macAddress = CStdString("0") + m_macAddress;
+      m_macAddress = '0' + m_macAddress;
     }
   }
   else
@@ -360,7 +371,7 @@ bool CAirTunesServer::StartServer(int port, bool nonlocal, bool usePassword, con
   if (ServerInstance->Initialize(pw))
   {
     success = true;
-    CStdString appName = StringUtils::Format("%s@%s",
+    std::string appName = StringUtils::Format("%s@%s",
                                              m_macAddress.c_str(),
                                              g_infoManager.GetLabel(SYSTEM_FRIENDLY_NAME).c_str());
 
@@ -430,7 +441,7 @@ CAirTunesServer::~CAirTunesServer()
   CAnnouncementManager::Get().RemoveAnnouncer(this);
 }
 
-bool CAirTunesServer::Initialize(const CStdString &password)
+bool CAirTunesServer::Initialize(const std::string &password)
 {
   bool ret = false;
 
@@ -439,14 +450,13 @@ bool CAirTunesServer::Initialize(const CStdString &password)
   if (m_pLibShairplay->Load())
   {
 
-    raop_callbacks_t ao;
+    raop_callbacks_t ao = {};
     ao.cls                  = m_pPipe;
     ao.audio_init           = AudioOutputFunctions::audio_init;
     ao.audio_set_volume     = AudioOutputFunctions::audio_set_volume;
     ao.audio_set_metadata   = AudioOutputFunctions::audio_set_metadata;
     ao.audio_set_coverart   = AudioOutputFunctions::audio_set_coverart;
     ao.audio_process        = AudioOutputFunctions::audio_process;
-    ao.audio_flush          = AudioOutputFunctions::audio_flush;
     ao.audio_destroy        = AudioOutputFunctions::audio_destroy;
     m_pLibShairplay->EnableDelayedUnload(false);
     m_pRaop = m_pLibShairplay->raop_init(1, &ao, RSA_KEY);//1 - we handle one client at a time max
