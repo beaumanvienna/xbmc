@@ -1174,7 +1174,7 @@ bool CWinSystemX11::SetWindow(int width, int height, bool fullscreen, const std:
       XWMHints *wm_hints;
       XClassHint *class_hints;
       XTextProperty windowName, iconName;
-      std::string titleString = "XBMC Media Center";
+      std::string titleString = "RetroRig";
       std::string classString = "xbmc.bin";
       char *title = (char*)titleString.c_str();
 
@@ -1275,7 +1275,32 @@ bool CWinSystemX11::CreateIconPixmap()
   gRatio = vis->green_mask / 255.0;
   bRatio = vis->blue_mask / 255.0;
 
-  CBaseTexture *iconTexture = CBaseTexture::LoadFromFile("special://xbmc/media/icon256x256.png");
+  //#define #ifdef RETRORIG_PL5
+  CStdString userHome;
+  bool modeRetroRig = false;
+  CBaseTexture *iconTexture;
+  std::size_t found;
+  if (getenv("HOME"))
+  {
+    userHome = getenv("HOME");
+    found = userHome.find(".retrorig");
+    modeRetroRig = (found!=std::string::npos);
+  }
+  
+  if (modeRetroRig)
+  {
+    #ifdef RETRORIG_PL5
+      printf("RetroRig: modeRetroRig\n");
+    #endif
+    iconTexture = CBaseTexture::LoadFromFile("/usr/share/icons/retro-icon.png");
+  }
+  else
+  {
+    #ifdef RETRORIG_PL5
+      printf("using xbmc icon\n");
+    #endif
+    iconTexture = CBaseTexture::LoadFromFile("special://xbmc/media/icon256x256.png");
+  }  
 
   if (!iconTexture)
     return false;

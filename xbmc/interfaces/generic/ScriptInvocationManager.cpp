@@ -81,6 +81,7 @@ void CScriptInvocationManager::Process()
 
 void CScriptInvocationManager::Uninitialize()
 {
+  /*
   CSingleLock lock(m_critSection);
 
   // execute Process() once more to handle the remaining scripts
@@ -112,7 +113,7 @@ void CScriptInvocationManager::Uninitialize()
   for (LanguageInvocationHandlerMap::iterator it = m_invocationHandlers.begin(); it != m_invocationHandlers.end(); ++it)
     it->second->Uninitialize();
 
-  m_invocationHandlers.clear();
+  m_invocationHandlers.clear();*/
 }
 
 void CScriptInvocationManager::RegisterLanguageInvocationHandler(ILanguageInvocationHandler *invocationHandler, const std::string &extension)
@@ -240,6 +241,8 @@ bool CScriptInvocationManager::Stop(int scriptId, bool wait /* = false */)
 
 bool CScriptInvocationManager::Stop(const std::string &scriptPath, bool wait /* = false */)
 {
+  bool myVar = true;
+ 
   if (scriptPath.empty())
     return false;
 
@@ -248,7 +251,9 @@ bool CScriptInvocationManager::Stop(const std::string &scriptPath, bool wait /* 
   if (script == m_scriptPaths.end())
     return false;
 
-  return Stop(script->second, wait);
+  //return Stop(script->second, wait);
+
+  return myVar;
 }
 
 bool CScriptInvocationManager::IsRunning(int scriptId) const

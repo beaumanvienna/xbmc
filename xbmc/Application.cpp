@@ -18,6 +18,7 @@
  *
  */
 
+#include "signal.h"
 #include "network/Network.h"
 #include "threads/SystemClock.h"
 #include "system.h"
@@ -375,6 +376,25 @@ using namespace XbmcThreads;
 #define USE_RELEASE_LIBS
 
 #define MAX_FFWD_SPEED 5
+
+#ifdef TARGET_LINUX
+#ifdef HAS_SDL_JOYSTICK
+void ReScan(int i)
+{
+  CLog::Log(LOGDEBUG, "rescanning for new game controller");
+
+  // switch off
+  g_Joystick.SetEnabled( false );
+  
+  // switch back on
+  if (CSettings::Get().GetBool("input.enablejoystick") &&
+                    CPeripheralImon::GetCountOfImonsConflictWithDInput() == 0)
+  {
+    g_Joystick.SetEnabled( true );
+  }
+}
+#endif
+#endif
 
 //extern IDirectSoundRenderer* m_pAudioDecoder;
 CApplication::CApplication(void)
@@ -980,10 +1000,28 @@ bool CApplication::CreateGUI()
     }
     else
     {
-      CLog::Log(LOGINFO, "load default splash image: %s", CSpecialProtocol::TranslatePath("special://xbmc/media/Splash.png").c_str());
-      m_splash = new CSplash("special://xbmc/media/Splash.png");
+      //#define #ifdef RETRORIG_PL6
+      CStdString userHome;
+      bool modeRetroRig = false;
+      std::size_t found;
+      if (getenv("HOME"))
+      {
+        userHome = getenv("HOME");
+        found = userHome.find(".retrorig");
+        modeRetroRig = (found!=std::string::npos);
+      }
+  
+      if (modeRetroRig)
+      {
+        m_splash = new CSplash("special://xbmc/media/Splash_retrorig.png");
+      }
+      else
+      {
+        m_splash = new CSplash("special://xbmc/media/Splash.png");
+      }  
     }
     m_splash->Show();
+    sleep(2);
   }
 
   // The key mappings may already have been loaded by a peripheral
@@ -1506,6 +1544,13 @@ bool CApplication::Initialize()
 #ifdef HAS_SDL_JOYSTICK
   g_Joystick.SetEnabled(CSettings::Get().GetBool("input.enablejoystick") &&
                     CPeripheralImon::GetCountOfImonsConflictWithDInput() == 0 );
+  
+#ifdef TARGET_LINUX
+  //register interrupt handler for SIGUSR1 to have XBMC re-initialze the gamepads
+  printf("This xbmc version is patched for RetroRig.\n");
+  signal(SIGUSR1, ReScan);  
+#endif
+
 #endif
 
   return true;

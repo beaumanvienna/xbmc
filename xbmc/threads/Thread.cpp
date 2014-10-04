@@ -36,6 +36,8 @@ XbmcCommons::ILogger* CThread::logger = NULL;
 
 #include "threads/platform/ThreadImpl.cpp"
 
+extern bool shuttingDown;
+
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
@@ -78,7 +80,25 @@ CThread::CThread(IRunnable* pRunnable, const char* ThreadName)
 
 CThread::~CThread()
 {
-  StopThread();
+#ifdef RETRORIG_PL4
+  printf("debug jc: CThread::~CThread() for '%s'\n",m_ThreadName.c_str());
+#endif
+  if (!shuttingDown) 
+  {
+#ifdef RETRORIG_PL4
+    printf("debug jc: CThread::~CThread is executing StopThread() to stop '%s';\n", m_ThreadName.c_str());
+#endif
+    StopThread();
+  }
+  else
+  {
+#ifdef RETRORIG_PL4
+    printf("debug jc: skipping StopThread() to prevent deadlock!\n");
+#endif
+  }
+#ifdef RETRORIG_PL4
+  printf("debug jc: CThread::~CThread() terminated\n");
+#endif
 }
 
 void CThread::Create(bool bAutoDelete, unsigned stacksize)

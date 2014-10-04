@@ -112,7 +112,7 @@ CPythonInvoker::~CPythonInvoker()
   if (GetState() < InvokerStateDone)
     CLog::Log(LOGDEBUG, "CPythonInvoker(%d): waiting for python thread \"%s\" to stop",
       GetId(), (!m_sourceFile.empty() ? m_sourceFile.c_str() : "unknown script"));
-  Stop(true);
+  //Stop(true);
   g_pythonParser.PulseGlobalEvent();
 
   if (m_argv != NULL)

@@ -104,6 +104,7 @@ public:
   void LoadCustomModeLinesToAllOutputs(void);
   void SaveState();
   void SetNumScreens(unsigned int num);
+  unsigned int GetNumScreens(void);
   bool IsOutputConnected(CStdString name);
   bool TurnOffOutput(CStdString name);
   bool TurnOnOutput(CStdString name);
