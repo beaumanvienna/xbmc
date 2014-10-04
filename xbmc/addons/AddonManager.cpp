@@ -887,6 +887,10 @@ bool CAddonMgr::StartServices(const bool beforelogin)
 
 void CAddonMgr::StopServices(const bool onlylogin)
 {
+#ifdef RETRORIG_PL4
+  printf("debug jc: CAddonMgr::StopServices\n");
+  CLog::Log(LOGNOTICE, "debug jc: CAddonMgr::StopServices");
+#endif
   CLog::Log(LOGDEBUG, "ADDON: Stopping service addons.");
 
   VECADDONS services;
@@ -895,14 +899,26 @@ void CAddonMgr::StopServices(const bool onlylogin)
 
   for (IVECADDONS it = services.begin(); it != services.end(); ++it)
   {
+#ifdef RETRORIG_PL4
+    printf("debug jc: loop\n");
+    CLog::Log(LOGNOTICE, "debug jc: loop");
+#endif
     boost::shared_ptr<CService> service = boost::dynamic_pointer_cast<CService>(*it);
     if (service)
     {
       if ( (onlylogin && service->GetStartOption() == CService::LOGIN)
         || (!onlylogin) )
+#ifdef RETRORIG_PL4
+	printf("debug jc: stopping service\n");
+        CLog::Log(LOGNOTICE, "debug jc: stopping service");
+#endif
         service->Stop();
     }
   }
+#ifdef RETRORIG_PL4
+  printf("debug jc: CAddonMgr::StopServices terminated\n");
+  CLog::Log(LOGNOTICE, "debug jc: CAddonMgr::StopServices terminated");
+#endif
 }
 
 int cp_to_clog(cp_log_severity_t lvl)

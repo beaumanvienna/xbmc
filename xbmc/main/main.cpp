@@ -40,13 +40,14 @@
 #include "input/linux/LIRC.h"
 #endif
 #include "XbmcContext.h"
-
+bool shuttingDown = false;
 int main(int argc, char* argv[])
 {
   // set up some xbmc specific relationships
   XBMC::Context context;
 
   bool renderGUI = true;
+  bool exitCode;
   //this can't be set from CAdvancedSettings::Initialize() because it will overwrite
   //the loglevel set with the --debug flag
 #ifdef _DEBUG
@@ -73,5 +74,13 @@ int main(int argc, char* argv[])
   CAppParamParser appParamParser;
   appParamParser.Parse((const char **)argv, argc);
 #endif
-  return XBMC_Run(renderGUI);
+#ifdef RETRORIG_PL4
+  printf("debug jc: XBMC_Run(renderGUI);\n");
+#endif
+  exitCode=XBMC_Run(renderGUI);
+  shuttingDown = true;
+#ifdef RETRORIG_PL4
+  printf("debug jc: XBMC_Run(renderGUI) teminated\n");
+#endif
+  return exitCode;
 }

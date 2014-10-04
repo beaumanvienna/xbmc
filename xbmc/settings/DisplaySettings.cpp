@@ -35,6 +35,10 @@
 #include "utils/StringUtils.h"
 #include "utils/XMLUtils.h"
 #include "windowing/WindowingFactory.h"
+#include "windowing/X11/XRandR.h"
+
+#include <iostream>     // std::cout
+#include <fstream>      // std::ifstream
 
 // 0.1 second increments
 #define MAX_REFRESH_CHANGE_DELAY 200
@@ -214,6 +218,7 @@ void CDisplaySettings::Clear()
 
 bool CDisplaySettings::OnSettingChanging(const CSetting *setting)
 {
+
   if (setting == NULL)
     return false;
 
@@ -328,6 +333,125 @@ bool CDisplaySettings::OnSettingUpdate(CSetting* &setting, const char *oldSettin
 
 void CDisplaySettings::SetCurrentResolution(RESOLUTION resolution, bool save /* = false */)
 {
+//#define RETRORIG_PL8  
+//#define RETRORIG_PL7
+  #ifdef RETRORIG_PL7
+    printf("RetroRig #97: CDisplaySettings::SetCurrentResolution\n");
+  #endif
+  
+//#define RETRORIG_PL6
+
+#if defined(HAS_XRANDR)  
+  std::string displayNameXRANDR, displayNameFromSettings,displayNameToPassDownToRetroRig;
+  int numScreens;
+
+  // get monitor name from xbmc settings
+  displayNameFromSettings = CSettings::Get().GetString("videoscreen.monitor");
+
+  #ifdef RETRORIG_PL6
+    printf("displayNameFromSettings = %s\n",displayNameFromSettings.c_str());
+  #endif
+    
+  // set to head 0, if "Default" monitor selected
+  if (!displayNameFromSettings.compare("Default"))
+  {
+    #ifdef RETRORIG_PL6
+      printf("found default, export SDL_VIDEO_FULLSCREEN_HEAD=0\n");
+    #endif
+    setenv("SDL_VIDEO_FULLSCREEN_HEAD","0", 1);
+  }
+  else // search monitor in XRANDR arry
+  {
+    // get amount of monitors from XRANDR
+    numScreens = g_xrandr.GetNumScreens(); 
+    
+    #ifdef RETRORIG_PL6
+      printf("RetroRig #68: amount of screens found: %d\n",numScreens);
+    #endif
+
+    // loop through XRANDR monitors
+    for (int i=0;i<numScreens;i++)
+    {
+      // get monitor name from XRANDR
+      displayNameXRANDR = g_xrandr.GetModes()[i].name;
+      #ifdef RETRORIG_PL6
+        printf("RetroRig #68: name[%d] = %s\n",i,displayNameXRANDR.c_str());
+      #endif
+
+      // compare with xbmc settings
+      if(!displayNameFromSettings.compare(displayNameXRANDR.c_str()))
+      {
+        // match found
+
+        std::string searchStr = "<output name=\"" + displayNameXRANDR + "\">"; 
+        
+        #ifdef RETRORIG_PL6
+          printf("Match found. Looking up '%s'\n",searchStr.c_str());
+        #endif
+
+        // find ~/.config/monitors.xml
+        std::string fileName = getenv("HOME");
+        //cut '/home/'
+        fileName = fileName.substr(6,fileName.length()-7);
+        int pos = fileName.find("/");
+        fileName = fileName.substr(0,pos);
+        fileName = "/home/" + fileName + "/.config/monitors.xml";
+        std::ifstream infile(fileName.c_str());
+        bool good = infile.good();
+        if(good)
+        {
+          #ifdef RETRORIG_PL6
+            printf("configuration file found at: %s\n",fileName.c_str());
+          #endif
+
+          std::string line ;
+          int line_number = 0 ;
+          while( std::getline( infile, line ) )
+          {
+            ++line_number ;
+            if ((searchStr!="<primary>") && ( line.find(searchStr) != std::string::npos ))
+            {
+              #ifdef RETRORIG_PL6
+                std::cout << "line " << line_number << ": " << line << '\n' ;
+              #endif
+              searchStr="<primary>";
+            }
+            if ((searchStr=="<primary>") && ( line.find(searchStr) != std::string::npos ))
+            {
+              #ifdef RETRORIG_PL6
+                std::cout << "line " << line_number << ": " << line << '\n' ;
+              #endif
+              if (line.find("no") != std::string::npos )
+              {
+                #ifdef RETRORIG_PL6
+                  printf("export SDL_VIDEO_FULLSCREEN_HEAD=%s\n","1");
+                #endif
+                setenv("SDL_VIDEO_FULLSCREEN_HEAD","1", 1);
+              }
+              else
+              {
+                #ifdef RETRORIG_PL6
+                  printf("export SDL_VIDEO_FULLSCREEN_HEAD=%s\n","0");
+                #endif
+                setenv("SDL_VIDEO_FULLSCREEN_HEAD","0", 1);
+              }
+              break;
+            }
+          }
+        }
+        else
+        {
+          #ifdef RETRORIG_PL6
+            printf("%s not found.\n",fileName.c_str());
+          #endif
+        }
+      }
+    }
+  }
+
+#endif //if defined(HAS_XRANDR) 
+
+  
   if (save)
   {
     string mode = GetStringFromResolution(resolution);
@@ -335,8 +459,79 @@ void CDisplaySettings::SetCurrentResolution(RESOLUTION resolution, bool save /* 
   }
 
   m_currentResolution = resolution;
-
+  
   SetChanged();
+  
+  /*********************************************************/
+  /* RETRORIG_PL7                                          */
+  /*                                                       */
+  /* Call RetroRig script to set up emulator resolutions.  */
+  /*                                                       */
+  /*********************************************************/
+  
+  // display name
+  if (!displayNameFromSettings.compare("Default"))
+  {
+    
+    displayNameToPassDownToRetroRig=g_xrandr.GetModes()[0].name;
+    
+    #ifdef RETRORIG_PL8
+      printf("found default, setting display name to XRANDR name: %s\n",displayNameToPassDownToRetroRig.c_str());
+    #endif
+  }
+  else // search monitor in XRANDR arry
+  {
+    
+    displayNameToPassDownToRetroRig=displayNameXRANDR=displayNameFromSettings;
+    
+    #ifdef RETRORIG_PL8
+      printf("setting display name to name from settings: %s\n",displayNameToPassDownToRetroRig.c_str());
+    #endif
+    
+  }
+  
+  const RESOLUTION_INFO &info = CDisplaySettings::Get().GetResolutionInfo(resolution);
+  
+  #ifdef RETRORIG_PL7
+    printf("RetroRig #97: screen resoltuion is %d by %d\n",info.iScreenWidth,info.iScreenHeight);
+  #endif
+    
+  CStdString userHome;
+  bool modeRetroRig = false;
+  std::size_t found;
+  if (getenv("HOME"))
+  {
+    userHome = getenv("HOME");
+    found = userHome.find(".retrorig");
+    modeRetroRig = (found!=std::string::npos);
+  }
+  
+  if (modeRetroRig)
+  {
+    CStdString script = userHome + "/RetroRig/scripts/setResolution.sh";
+    
+    #ifdef RETRORIG_PL7
+      printf("RetroRig #97: script path = %s\n",script.c_str());
+    #endif
+
+    std::ifstream infile(script.c_str());
+    bool good = infile.good();
+    if(good)    
+    {
+      #ifdef RETRORIG_PL7
+        printf("RetroRig #97: file found\n");
+      #endif
+      std::stringstream stream;    
+      stream << script.c_str() << " " << info.iScreenWidth << " " << info.iScreenHeight << " " << displayNameToPassDownToRetroRig;
+      system(stream.str().c_str());
+    }
+    else
+    {
+      #ifdef RETRORIG_PL7
+        printf("RetroRig #97: file not found\n");
+      #endif
+    }
+  }
 }
 
 RESOLUTION CDisplaySettings::GetDisplayResolution() const

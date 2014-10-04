@@ -20,6 +20,7 @@
 
 #include "LanguageInvokerThread.h"
 #include "ScriptInvocationManager.h"
+#include "utils/log.h"
 
 CLanguageInvokerThread::CLanguageInvokerThread(ILanguageInvoker *invoker, CScriptInvocationManager *invocationManager)
   : ILanguageInvoker(NULL),
@@ -30,8 +31,15 @@ CLanguageInvokerThread::CLanguageInvokerThread(ILanguageInvoker *invoker, CScrip
 
 CLanguageInvokerThread::~CLanguageInvokerThread()
 {
-  Stop(true);
+#ifdef RETRORIG_PL4
+#warning "RETRORIG_PL4 is defined"
+  printf("debug jc: CLanguageInvokerThread::~CLanguageInvokerThread()\n");
+#endif
+  //Stop(true);
   delete m_invoker;
+#ifdef RETRORIG_PL4
+  printf("debug jc: CLanguageInvokerThread::~CLanguageInvokerThread() terminated\n");
+#endif
 }
 
 InvokerState CLanguageInvokerThread::GetState()
@@ -56,21 +64,47 @@ bool CLanguageInvokerThread::execute(const std::string &script, const std::vecto
 
 bool CLanguageInvokerThread::stop(bool wait)
 {
+  
+#ifdef RETRORIG_PL4
+  bool myVar;
+  printf("debug jc: CLanguageInvokerThread::stop\n");
+  CLog::Log(LOGNOTICE, "debug jc: CLanguageInvokerThread::stop");
+#endif
   if (m_invoker == NULL)
+  {
+#ifdef RETRORIG_PL4
+    printf("debug jc: (m_invoker == NULL) terminating\n");
+#endif
     return false;
+  }
 
   if (!CThread::IsRunning())
+  {
+#ifdef RETRORIG_PL4
+    printf("debug jc: (!CThread::IsRunning()) terminating\n");
+#endif
     return false;
+  }
 
   bool result = true;
   if (m_invoker->GetState() < InvokerStateDone)
   {
+#ifdef RETRORIG_PL4
+    printf("debug jc: before result = m_invoker->Stop(wait);\n");
+#endif
     // stop the language-specific invoker
     result = m_invoker->Stop(wait);
     // stop the thread
-    CThread::StopThread(wait);
+#ifdef RETRORIG_PL4
+    printf("debug jc: before CThread::StopThread(wait);\n");
+    printf("debug jc: skipping CThread::StopThread(wait);\n");
+#endif
+    //CThread::StopThread(wait);
   }
-
+#ifdef RETRORIG_PL4
+  printf("debug jc: CLanguageInvokerThread::stop terminating\n");
+  CLog::Log(LOGNOTICE, "debug jc: CLanguageInvokerThread::stop terminating");
+#endif
   return result;
 }
 
@@ -86,6 +120,9 @@ void CLanguageInvokerThread::OnStartup()
 
 void CLanguageInvokerThread::Process()
 {
+#ifdef RETRORIG_PL4
+  printf("RetroRig #45: CLanguageInvokerThread::Process() %s \n",m_script.c_str());
+#endif
   if (m_invoker == NULL)
     return;
 

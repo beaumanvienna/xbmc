@@ -39,6 +39,10 @@ CGUIAction::CGUIAction(int controlID)
 
 bool CGUIAction::ExecuteActions(int controlID, int parentID) const
 {
+#ifdef RETRORIG_PL4
+  printf("RetroRig #45: CGUIAction::ExecuteActions controlID=%d parentID=%d\n",controlID, parentID);
+#endif
+  
   if (m_actions.size() == 0) return false;
   // take a copy of actions that satisfy our conditions
   vector<CStdString> actions;

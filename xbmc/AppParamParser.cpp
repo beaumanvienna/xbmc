@@ -84,6 +84,7 @@ void CAppParamParser::DisplayVersion()
 {
   printf("XBMC Media Center %s\n", g_infoManager.GetVersion().c_str());
   printf("Copyright (C) 2005-2013 Team XBMC - http://xbmc.org\n");
+  printf("Patched for RetroRig (patch level 7)\n");
   exit(0);
 }
 

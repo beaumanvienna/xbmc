@@ -18,6 +18,7 @@
  *
  */
 
+#include "signal.h"
 #include "network/Network.h"
 #include "threads/SystemClock.h"
 #include "system.h"
@@ -377,6 +378,25 @@ using namespace XbmcThreads;
 #define USE_RELEASE_LIBS
 
 #define MAX_FFWD_SPEED 5
+
+#ifdef TARGET_LINUX
+#ifdef HAS_SDL_JOYSTICK
+void ReScan(int i)
+{
+  CLog::Log(LOGDEBUG, "rescanning for new game controller");
+
+  // switch off
+  g_Joystick.SetEnabled( false );
+  
+  // switch back on
+  if (CSettings::Get().GetBool("input.enablejoystick") &&
+                    CPeripheralImon::GetCountOfImonsConflictWithDInput() == 0)
+  {
+    g_Joystick.SetEnabled( true );
+  }
+}
+#endif
+#endif
 
 //extern IDirectSoundRenderer* m_pAudioDecoder;
 CApplication::CApplication(void)
@@ -1022,10 +1042,28 @@ bool CApplication::CreateGUI()
     }
     else
     {
-      CLog::Log(LOGINFO, "load default splash image: %s", CSpecialProtocol::TranslatePath("special://xbmc/media/Splash.png").c_str());
-      m_splash = new CSplash("special://xbmc/media/Splash.png");
+      //#define #ifdef RETRORIG_PL6
+      CStdString userHome;
+      bool modeRetroRig = false;
+      std::size_t found;
+      if (getenv("HOME"))
+      {
+        userHome = getenv("HOME");
+        found = userHome.find(".retrorig");
+        modeRetroRig = (found!=std::string::npos);
+      }
+  
+      if (modeRetroRig)
+      {
+        m_splash = new CSplash("special://xbmc/media/Splash_retrorig.png");
+      }
+      else
+      {
+        m_splash = new CSplash("special://xbmc/media/Splash.png");
+      }  
     }
     m_splash->Show();
+    sleep(2);
   }
 
   // The key mappings may already have been loaded by a peripheral
@@ -1549,6 +1587,13 @@ bool CApplication::Initialize()
 #ifdef HAS_SDL_JOYSTICK
   g_Joystick.SetEnabled(CSettings::Get().GetBool("input.enablejoystick") &&
                     CPeripheralImon::GetCountOfImonsConflictWithDInput() == 0 );
+  
+#ifdef TARGET_LINUX
+  //register interrupt handler for SIGUSR1 to have XBMC re-initialze the gamepads
+  printf("This xbmc version is patched for RetroRig.\n");
+  signal(SIGUSR1, ReScan);  
+#endif
+
 #endif
 
   return true;
@@ -2061,6 +2106,10 @@ void CApplication::LoadSkin(const SkinPtr& skin)
 
 void CApplication::UnloadSkin(bool forReload /* = false */)
 {
+#ifdef RETRORIG_PL4
+  printf("debug jc: CApplication::UnloadSkin\n");
+  CLog::Log(LOGWARNING, "debug jc: CApplication::UnloadSkin");
+#endif
   m_skinReloading = forReload;
 
   CLog::Log(LOGINFO, "Unloading old skin %s...", forReload ? "for reload " : "");
@@ -2081,7 +2130,10 @@ void CApplication::UnloadSkin(bool forReload /* = false */)
   g_colorManager.Clear();
 
   g_infoManager.Clear();
-
+#ifdef RETRORIG_PL4
+  printf("debug jc: CApplication::UnloadSkin terminated\n");
+  CLog::Log(LOGWARNING, "debug jc: CApplication::UnloadSkin terminated");
+#endif
 //  The g_SkinInfo boost shared_ptr ought to be reset here
 // but there are too many places it's used without checking for NULL
 // and as a result a race condition on exit can cause a crash.
@@ -3533,6 +3585,9 @@ bool CApplication::Cleanup()
 
 void CApplication::Stop(int exitCode)
 {
+#ifdef RETRORIG_PL4
+  printf("debug jc: CApplication::Stop()\n");
+#endif
   try
   {
     CVariant vExitCode(exitCode);
@@ -3619,24 +3674,52 @@ void CApplication::Stop(int exitCode)
     CCrystalHD::RemoveInstance();
 #endif
 
+    
+    
     g_mediaManager.Stop();
-
+#ifdef RETRORIG_PL4
+    printf("debug jc: after g_mediaManager.Stop();\n");
+    CLog::Log(LOGNOTICE, "debug jc: after g_mediaManager.Stop();");
+#endif
     // Stop services before unloading Python
     CAddonMgr::Get().StopServices(false);
-
+#ifdef RETRORIG_PL4
+    printf("debug jc: after CAddonMgr::Get().StopServices(false);\n");
+    CLog::Log(LOGNOTICE, "debug jc: after CAddonMgr::Get().StopServices(false);");
+#endif
     // stop all remaining scripts; must be done after skin has been unloaded,
     // not before some windows still need it when deinitializing during skin
     // unloading
     CScriptInvocationManager::Get().Uninitialize();
-
+#ifdef RETRORIG_PL4
+    printf("debug jc: CScriptInvocationManager::Get().Uninitialize();\n");
+    CLog::Log(LOGNOTICE, "debug jc: CScriptInvocationManager::Get().Uninitialize();");
+#endif
     g_Windowing.DestroyRenderSystem();
+#ifdef RETRORIG_PL4
+    printf("debug jc: after DestroyRenderSystem\n");
+    CLog::Log(LOGNOTICE, "debug jc: after DestroyRenderSystem");
+#endif
     g_Windowing.DestroyWindow();
+#ifdef RETRORIG_PL4
+    printf("debug jc: after DestroyWindow\n");
+    CLog::Log(LOGNOTICE, "debug jc: after DestroyWindow");
+#endif
     g_Windowing.DestroyWindowSystem();
-
+#ifdef RETRORIG_PL4
+    printf("debug jc: after destroyWindowSystem\n");
+    CLog::Log(LOGNOTICE, "debug jc: after destroy");
+#endif
     // shutdown the AudioEngine
     CAEFactory::Shutdown();
+#ifdef RETRORIG_PL4
+    printf("debug jc: after CAEFactory::Shutdown();\n");
+#endif
     CAEFactory::UnLoadEngine();
-
+#ifdef RETRORIG_PL4
+    printf("debug jc: after CAEFactory::UnLoadEngine();\n");
+#endif
+    
     // unregister ffmpeg lock manager call back
     av_lockmgr_register(NULL);
 
@@ -3649,8 +3732,14 @@ void CApplication::Stop(int exitCode)
 
   // we may not get to finish the run cycle but exit immediately after a call to g_application.Stop()
   // so we may never get to Destroy() in CXBApplicationEx::Run(), we call it here.
+#ifdef RETRORIG_PL4
+  printf("debug jc: calling Destroy()\n");
+#endif
   Destroy();
-
+#ifdef RETRORIG_PL4
+  printf("debug jc: CApplication::Stop() terminated\n");
+#endif
+  
   //
   Sleep(200);
 }
@@ -4782,6 +4871,9 @@ bool CApplication::IsIdleShutdownInhibited() const
 
 bool CApplication::OnMessage(CGUIMessage& message)
 {
+#ifdef RETRORIG_PL4
+  printf("RetroRig #45: CApplication::OnMessage %d\n",message.GetMessage());
+#endif
   switch ( message.GetMessage() )
   {
   case GUI_MSG_NOTIFY_ALL:
@@ -5020,6 +5112,9 @@ bool CApplication::OnMessage(CGUIMessage& message)
 
 bool CApplication::ExecuteXBMCAction(std::string actionStr)
 {
+#ifdef RETRORIG_PL4
+  printf("RetroRig #45: CApplication::ExecuteXBMCAction %s\n",actionStr.c_str());
+#endif
   // see if it is a user set string
 
   //We don't know if there is unsecure information in this yet, so we

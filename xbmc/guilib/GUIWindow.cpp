@@ -83,6 +83,9 @@ CGUIWindow::~CGUIWindow(void)
 
 bool CGUIWindow::Load(const CStdString& strFileName, bool bContainsPath)
 {
+#ifdef RETRORIG_PL4
+  printf("RetroRig #45: CGUIWindow::Load %s\n",strFileName.c_str());
+#endif
 #ifdef HAS_PERFORMANCE_SAMPLE
   CPerformanceSample aSample("WindowLoad-" + strFileName, true);
 #endif
@@ -159,6 +162,9 @@ bool CGUIWindow::LoadXML(const CStdString &strPath, const CStdString &strLowerPa
 
 bool CGUIWindow::Load(TiXmlElement* pRootElement)
 {
+#ifdef RETRORIG_PL4
+  printf("RetroRig #45: CGUIWindow::Load\n");
+#endif
   if (!pRootElement)
     return false;
   

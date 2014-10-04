@@ -951,6 +951,11 @@ bool CGraphicContext::IsFullScreenRoot () const
 
 bool CGraphicContext::ToggleFullScreenRoot ()
 {
+#ifdef RETRORIG_PL5
+  printf("RetroRig #68: skipping ToggleFullScreenRoot\n");
+#endif
+  return m_bFullScreenRoot;
+  
   RESOLUTION uiRes;  ///< resolution to save - not necessarily the same as the one we switch to (e.g. during video playback)
   RESOLUTION videoRes;
   bool setVideoRes = false;

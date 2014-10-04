@@ -25,6 +25,7 @@
 
 #include "addons/IAddon.h"
 #include "threads/CriticalSection.h"
+#include "utils/log.h"
 
 class ILanguageInvocationHandler;
 class ILanguageInvoker;

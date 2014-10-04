@@ -104,6 +104,9 @@ CPythonInvoker::CPythonInvoker(ILanguageInvocationHandler *invocationHandler)
 
 CPythonInvoker::~CPythonInvoker()
 {
+#ifdef RETRORIG_PL4
+  printf("debug jc: CPythonInvoker::~CPythonInvoker()\n");
+#endif
   // nothing to do for the default invoker used for registration with the
   // CScriptInvocationManager
   if (GetId() < 0)
@@ -112,7 +115,7 @@ CPythonInvoker::~CPythonInvoker()
   if (GetState() < InvokerStateDone)
     CLog::Log(LOGDEBUG, "CPythonInvoker(%d): waiting for python thread \"%s\" to stop",
       GetId(), (m_source != NULL ? m_source : "unknown script"));
-  Stop(true);
+  //Stop(true);
   g_pythonParser.PulseGlobalEvent();
 
   delete [] m_source;
@@ -123,10 +126,16 @@ CPythonInvoker::~CPythonInvoker()
     delete [] m_argv;
   }
   g_pythonParser.FinalizeScript();
+#ifdef RETRORIG_PL4
+  printf("debug jc: CPythonInvoker::~CPythonInvoker() terminated\n");
+#endif
 }
 
 bool CPythonInvoker::Execute(const std::string &script, const std::vector<std::string> &arguments /* = std::vector<std::string>() */)
 {
+#ifdef RETRORIG_PL4
+  printf("RetroRig #45: CPythonInvoker::Execute (overlay I)\n");
+#endif
   if (script.empty())
     return false;
 
@@ -144,6 +153,9 @@ bool CPythonInvoker::Execute(const std::string &script, const std::vector<std::s
 
 bool CPythonInvoker::execute(const std::string &script, const std::vector<std::string> &arguments)
 {
+#ifdef RETRORIG_PL4
+  printf("RetroRig #45: CPythonInvoker::Execute (overlay II)\n");
+#endif
   // copy the code/script into a local string buffer
 #ifdef TARGET_WINDOWS
   CStdString strsrc = script;
@@ -165,17 +177,32 @@ bool CPythonInvoker::execute(const std::string &script, const std::vector<std::s
   }
 
   CLog::Log(LOGDEBUG, "CPythonInvoker(%d, %s): start processing", GetId(), m_source);
+#ifdef RETRORIG_PL4
+  printf("RetroRig #45: PythonInvoker(%d, %s): start processing\n", GetId(), m_source);
+#endif
   int m_Py_file_input = Py_file_input;
-
+#ifdef RETRORIG_PL4
+  printf("hello 1\n");
+#endif
   // get the global lock
   PyEval_AcquireLock();
+#ifdef RETRORIG_PL4
+  printf("hello 2\n");
+#endif
   PyThreadState* state = Py_NewInterpreter();
+#ifdef RETRORIG_PL4
+  printf("hello 3\n");
+#endif
   if (state == NULL)
   {
     PyEval_ReleaseLock();
+#ifdef RETRORIG_PL4
+    printf("RetroRig #45: CPythonInvoker(%d, %s): FAILED to get thread state!\n", GetId(), m_source);
+#endif
     CLog::Log(LOGERROR, "CPythonInvoker(%d, %s): FAILED to get thread state!", GetId(), m_source);
     return false;
   }
+  
   // swap in my thread state
   PyThreadState_Swap(state);
 
@@ -186,7 +213,9 @@ bool CPythonInvoker::execute(const std::string &script, const std::vector<std::s
   setState(InvokerStateInitialized);
 
   CLog::Log(LOGDEBUG, "CPythonInvoker(%d, %s): the source file to load is %s", GetId(), m_source, m_source);
-
+#ifdef RETRORIG_PL4
+  printf("RetroRig #45: CPythonInvoker(%d, %s): the source file to load is %s\n", GetId(), m_source, m_source);
+#endif
   // get path from script file name and add python path's
   // this is used for python so it will search modules from script path first
   CStdString scriptDir = URIUtils::GetDirectory(CSpecialProtocol::TranslatePath(m_source));
@@ -398,6 +427,14 @@ bool CPythonInvoker::execute(const std::string &script, const std::vector<std::s
 
 bool CPythonInvoker::stop(bool abort)
 {
+#ifdef RETRORIG_PL4
+  printf("debug jc: CPythonInvoker::stop(bool abort) ** skipping eveything: terminating right now\n");
+  CLog::Log(LOGNOTICE, "debug jc: CPythonInvoker::stop(bool abort) ** skipping eveything: terminating right now");
+#endif
+  return true;
+  
+  
+  
   CSingleLock lock(m_critical);
   m_stop = true;
 
