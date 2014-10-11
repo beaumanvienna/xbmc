@@ -254,6 +254,22 @@ std::vector<std::string> CUDisksProvider::GetDiskUsage()
 bool CUDisksProvider::PumpDriveChangeEvents(IStorageEventsCallback *callback)
 {
   bool result = false;
+
+  CStdString userHome;
+  bool modeRetroRig = false;
+  std::size_t found;
+  if (getenv("HOME"))
+  {
+    userHome = getenv("HOME");
+    found = userHome.find(".retrorig");
+    modeRetroRig = (found!=std::string::npos);
+  }
+  
+  if (modeRetroRig)
+  {
+    return false;
+  }
+  
   if (m_connection)
   {
     dbus_connection_read_write(m_connection, 0);

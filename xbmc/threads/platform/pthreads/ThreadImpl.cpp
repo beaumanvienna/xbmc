@@ -47,6 +47,7 @@ void CThread::SpawnThread(unsigned stacksize)
     pthread_attr_setstacksize(&attr, stacksize);
 #endif
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+if (logger) logger->Log(LOGNOTICE, "RetroRig: void CThread::SpawnThread(unsigned stacksize)");
   if (pthread_create(&m_ThreadId, &attr, (void*(*)(void*))staticThread, this) != 0)
   {
     if (logger) logger->Log(LOGNOTICE, "%s - fatal error creating thread",__FUNCTION__);
