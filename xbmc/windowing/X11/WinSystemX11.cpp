@@ -958,6 +958,15 @@ bool CWinSystemX11::EnableFrameLimiter()
   return m_minimized;
 }
 
+void CWinSystemX11::raiseMainWindow(void)
+{
+  #define RETRORIG_PL11
+  #ifdef RETRORIG_PL11
+    printf("RetroRig: CWinSystemX11::raiseMainWindow(void)\n");
+  #endif
+  XRaiseWindow(m_dpy, m_mainWindow);
+}
+
 bool CWinSystemX11::SetWindow(int width, int height, bool fullscreen, const std::string &output)
 {
   bool changeWindow = false;

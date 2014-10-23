@@ -478,7 +478,7 @@ void CDisplaySettings::SetCurrentResolution(RESOLUTION resolution, bool save /* 
     SetChanged();
   }
 
-    /*********************************************************/
+  /*********************************************************/
   /* RETRORIG_PL7                                          */
   /*                                                       */
   /* Call RetroRig script to set up emulator resolutions.  */
@@ -524,7 +524,8 @@ void CDisplaySettings::SetCurrentResolution(RESOLUTION resolution, bool save /* 
   
   if (modeRetroRig)
   {
-    CStdString script = userHome + "/RetroRig/scripts/setResolution.sh";
+    
+    CStdString script = userHome + "/scripts/setResolution.sh";
     
     #ifdef RETRORIG_PL7
       printf("RetroRig #97: script path = %s\n",script.c_str());
@@ -534,8 +535,8 @@ void CDisplaySettings::SetCurrentResolution(RESOLUTION resolution, bool save /* 
     bool good = infile.good();
     if(good)    
     {
-      #ifdef RETRORIG_PL7
-        printf("RetroRig #97: file found\n");
+      #ifdef RETRORIG_PL11
+        printf("RetroRig: using new script path\n");
       #endif
       std::stringstream stream;    
       stream << script.c_str() << " " << info.iScreenWidth << " " << info.iScreenHeight << " " << displayNameToPassDownToRetroRig;
@@ -543,9 +544,25 @@ void CDisplaySettings::SetCurrentResolution(RESOLUTION resolution, bool save /* 
     }
     else
     {
-      #ifdef RETRORIG_PL7
-        printf("RetroRig #97: file not found\n");
-      #endif
+      //try old path
+      script = userHome + "/RetroRig/scripts/setResolution.sh";
+      std::ifstream infileOld(script.c_str());
+      good = infileOld.good();
+      if(good)    
+      {
+        #ifdef RETRORIG_PL11
+          printf("RetroRig: using old script path\n");
+        #endif
+        std::stringstream stream;    
+        stream << script.c_str() << " " << info.iScreenWidth << " " << info.iScreenHeight << " " << displayNameToPassDownToRetroRig;
+        system(stream.str().c_str());
+      }
+      else
+      {
+        #ifdef RETRORIG_PL11
+          printf("RetroRig #97: file not found\n");
+        #endif
+      }
     }
   }
 

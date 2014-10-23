@@ -87,6 +87,7 @@ public:
   void GetConnectedOutputs(std::vector<CStdString> *outputs);
   bool IsCurrentOutput(CStdString output);
   void RecreateWindow();
+  void raiseMainWindow(void);
 
 protected:
   bool RefreshGlxContext(bool force);

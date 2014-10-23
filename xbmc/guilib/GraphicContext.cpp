@@ -951,6 +951,13 @@ bool CGraphicContext::IsFullScreenRoot () const
 
 bool CGraphicContext::ToggleFullScreenRoot ()
 {
+//#define RETRORIG_PL11
+#ifdef RETRORIG_PL11
+  printf("RetroRig: moving main window to foreground\n");
+#endif
+  
+  g_Windowing.raiseMainWindow();
+  
 #ifdef RETRORIG_PL5
   printf("RetroRig #68: skipping ToggleFullScreenRoot\n");
 #endif
