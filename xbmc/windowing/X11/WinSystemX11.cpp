@@ -960,7 +960,7 @@ bool CWinSystemX11::EnableFrameLimiter()
 
 void CWinSystemX11::raiseMainWindow(void)
 {
-  #define RETRORIG_PL11
+  //#define RETRORIG_PL11
   #ifdef RETRORIG_PL11
     printf("RetroRig: CWinSystemX11::raiseMainWindow(void)\n");
   #endif

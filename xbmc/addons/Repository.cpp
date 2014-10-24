@@ -317,11 +317,11 @@ bool CRepositoryUpdateJob::DoWork()
           std::string line = g_localizeStrings.Get(24096);
           if (newAddon->Props().broken == "DEPSNOTMET")
             line = g_localizeStrings.Get(24104);
-          if (addon && CGUIDialogYesNo::ShowAndGetInput(newAddon->Name(),
+          /*if (addon && CGUIDialogYesNo::ShowAndGetInput(newAddon->Name(),
                                                line,
                                                g_localizeStrings.Get(24097),
                                                ""))
-            CAddonMgr::Get().DisableAddon(newAddon->ID());
+            CAddonMgr::Get().DisableAddon(newAddon->ID());*/
         }
       }
       database.BreakAddon(newAddon->ID(), newAddon->Props().broken);
