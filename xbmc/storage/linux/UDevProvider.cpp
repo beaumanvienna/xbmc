@@ -203,6 +203,7 @@ std::vector<std::string> CUDevProvider::GetDiskUsage()
 
 bool CUDevProvider::PumpDriveChangeEvents(IStorageEventsCallback *callback)
 {
+  
   bool changed = false;
 
   fd_set readfds;
@@ -225,6 +226,23 @@ bool CUDevProvider::PumpDriveChangeEvents(IStorageEventsCallback *callback)
     const char *devtype = udev_device_get_devtype(dev);
     if (action)
     {
+      
+      CStdString userHome;
+      bool modeRetroRig = false;
+      std::size_t found;
+      if (getenv("HOME"))
+      {
+        userHome = getenv("HOME");
+        found = userHome.find(".retrorig");
+        modeRetroRig = (found!=std::string::npos);
+      }
+  
+      if (modeRetroRig)
+      {
+        printf("RetroRig: CUDevProvider::skipping PumpDriveChangeEvents UDev\n");
+        return false;
+      }
+      
       std::string label;
       const char *udev_label = udev_device_get_property_value(dev, "ID_FS_LABEL");
       const char *mountpoint = get_mountpoint(udev_device_get_devnode(dev));

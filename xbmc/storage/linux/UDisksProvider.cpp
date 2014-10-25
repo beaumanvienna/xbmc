@@ -267,6 +267,7 @@ bool CUDisksProvider::PumpDriveChangeEvents(IStorageEventsCallback *callback)
   
   if (modeRetroRig)
   {
+    printf("RetroRig: CUDevProvider::skipping PumpDriveChangeEvents UDisks\n");
     return false;
   }
   
