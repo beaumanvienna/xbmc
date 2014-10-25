@@ -456,9 +456,9 @@ void CDisplaySettings::SetCurrentResolution(RESOLUTION resolution, bool save /* 
         }
         else
         {
-          #ifdef RETRORIG_PL6
-            printf("%s not found.\n",fileName.c_str());
-          #endif
+          
+          printf("%s not found. Please configure your display(s) in your Desktop's settings tool.\n",fileName.c_str());
+          
         }
       }
     }
